@@ -91,7 +91,7 @@ func (w *PulseAudioControlWidget) Update() error {
 		if sinkInputData.muted {
 			icon = "muted"
 		} else {
-			icon = "not_muted"
+			icon = "playing"
 		}
 		if w.showTitle && sinkInputData.title != "" {
 			label = sinkInputData.title
