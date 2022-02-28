@@ -1,42 +1,20 @@
 package main
 
 import (
-	"bytes"
-	"embed"
 	"fmt"
-	"image"
 	"io/ioutil"
 	"net/http"
 	"os"
-	"path/filepath"
 	"strings"
 	"sync"
 	"time"
 )
-
-//go:embed assets/weather
-var weatherImages embed.FS
-
-func weatherImage(name string) image.Image {
-	b, err := weatherImages.ReadFile(name)
-	if err != nil {
-		panic(err)
-	}
-
-	icon, _, err := image.Decode(bytes.NewReader(b))
-	if err != nil {
-		panic(err)
-	}
-
-	return icon
-}
 
 // WeatherWidget is a widget displaying the current weather.
 type WeatherWidget struct {
 	*ButtonWidget
 
 	data  WeatherData
-	theme string
 }
 
 // WeatherData handles fetches and parsing weather data.
@@ -139,15 +117,17 @@ func (w *WeatherData) Fetch() {
 
 // NewWeatherWidget returns a new WeatherWidget.
 func NewWeatherWidget(bw *BaseWidget, opts WidgetConfig) (*WeatherWidget, error) {
-	var location, unit, theme string
+	var location, unit string
 	_ = ConfigValue(opts.Config["location"], &location)
 	_ = ConfigValue(opts.Config["unit"], &unit)
-	_ = ConfigValue(opts.Config["theme"], &theme)
 
 	widget, err := NewButtonWidget(bw, opts)
 	if err != nil {
 		return nil, err
 	}
+
+	widget.assetDir = "weather"
+
 	// this needs to be called after NewButtonWidget, otherwise its value gets
 	// overwritten by it.
 	bw.setInterval(time.Duration(opts.Interval)*time.Millisecond, time.Minute)
@@ -158,7 +138,6 @@ func NewWeatherWidget(bw *BaseWidget, opts WidgetConfig) (*WeatherWidget, error)
 			location: location,
 			unit:     unit,
 		},
-		theme: theme,
 	}, nil
 }
 
@@ -213,21 +192,8 @@ func (w *WeatherWidget) Update() error {
 		return w.render(w.dev, nil)
 	}
 
-	var weatherIcon image.Image
-	imagePath := filepath.Join("assets", "weather", iconName+".png")
-	if w.theme != "" {
-		var err error
-		weatherIcon, err = loadThemeImage(w.theme, iconName)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, "weather widget using fallback icons")
-			weatherIcon = weatherImage(imagePath)
-		}
-	} else {
-		weatherIcon = weatherImage(imagePath)
-	}
-
 	w.label = temp
-	w.SetImage(weatherIcon)
+	w.loadThemeOrWidgetAssetIcon(iconName)
 
 	return w.ButtonWidget.Update()
 }

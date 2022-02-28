@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"embed"
 	"fmt"
 	"image"
 	"image/color"
@@ -18,6 +20,9 @@ import (
 var (
 	// DefaultColor is the standard color for text rendering.
 	DefaultColor = color.RGBA{255, 255, 255, 255}
+
+	//go:embed assets
+	assetsDirectory embed.FS
 )
 
 // Widget is an interface implemented by all available widgets.
@@ -156,6 +161,20 @@ func (w *BaseWidget) setInterval(interval time.Duration, defaultInterval time.Du
 	}
 
 	w.interval = interval
+}
+
+func loadWidgetAssetImage(name string) image.Image {
+	b, err := assetsDirectory.ReadFile(name)
+	if err != nil {
+		panic(err)
+	}
+
+	icon, _, err := image.Decode(bytes.NewReader(b))
+	if err != nil {
+		panic(err)
+	}
+
+	return icon
 }
 
 func loadImage(path string) (image.Image, error) {

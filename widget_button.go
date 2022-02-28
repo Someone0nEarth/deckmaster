@@ -1,8 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"image"
 	"image/color"
+	"os"
+	"path/filepath"
 	"time"
 )
 
@@ -10,11 +13,13 @@ import (
 type ButtonWidget struct {
 	*BaseWidget
 
+	assetDir string
 	icon     image.Image
 	label    string
 	fontsize float64
 	color    color.Color
 	flatten  bool
+	theme    string
 }
 
 // NewButtonWidget returns a new ButtonWidget.
@@ -30,6 +35,8 @@ func NewButtonWidget(bw *BaseWidget, opts WidgetConfig) (*ButtonWidget, error) {
 	_ = ConfigValue(opts.Config["color"], &color)
 	var flatten bool
 	_ = ConfigValue(opts.Config["flatten"], &flatten)
+	var theme string
+	_ = ConfigValue(opts.Config["theme"], &theme)
 
 	if color == nil {
 		color = DefaultColor
@@ -41,6 +48,7 @@ func NewButtonWidget(bw *BaseWidget, opts WidgetConfig) (*ButtonWidget, error) {
 		fontsize:   fontsize,
 		color:      color,
 		flatten:    flatten,
+		theme:      theme,
 	}
 	if icon != "" {
 		if err := w.LoadImage(icon); err != nil {
@@ -64,6 +72,23 @@ func (w *ButtonWidget) LoadImage(path string) error {
 
 	w.SetImage(icon)
 	return nil
+}
+
+func (w *ButtonWidget) loadThemeOrWidgetAssetIcon(iconName string) {
+	var icon image.Image
+	imagePath := filepath.Join("assets", w.assetDir, iconName+".png")
+	if w.theme != "" {
+		var err error
+		icon, err = loadThemeImage(w.theme, iconName)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "'%s' not found in themes '%s'. Load icon from asset directory '%s' as fallback.", iconName, w.theme, w.assetDir)
+			icon = loadWidgetAssetImage(imagePath)
+		}
+	} else {
+		icon = loadWidgetAssetImage(imagePath)
+	}
+
+	w.SetImage(icon)
 }
 
 // SetImage updates the widget's icon.
