@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
+	"sync"
 )
 
 const (
@@ -24,6 +25,9 @@ type PulseAudioControlWidget struct {
 	appName   string
 	mode      string
 	showTitle bool
+
+	update      bool
+	updateMutex sync.RWMutex
 }
 
 type sinkInputData struct {
@@ -64,9 +68,14 @@ func NewPulseAudioControlWidget(bw *BaseWidget, opts WidgetConfig) (*PulseAudioC
 
 // RequiresUpdate returns true when the widget wants to be repainted.
 func (w *PulseAudioControlWidget) RequiresUpdate() bool {
-	//TODO
+	return w.updateRequired() || w.BaseWidget.RequiresUpdate()
+}
 
-	return w.BaseWidget.RequiresUpdate()
+func (w *PulseAudioControlWidget) updateRequired() bool {
+	w.updateMutex.RLock()
+	defer w.updateMutex.RUnlock()
+
+	return w.update
 }
 
 // Update renders the widget.
@@ -106,6 +115,10 @@ func (w *PulseAudioControlWidget) TriggerAction(hold bool) {
 		fmt.Fprintln(os.Stderr, "unknown mode:", w.mode)
 		return
 	}
+
+	w.updateMutex.Lock()
+	defer w.updateMutex.Unlock()
+	w.update = true
 
 	sinkInputData, err := getSinkInputDataForApp(w.appName)
 
