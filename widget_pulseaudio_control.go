@@ -52,6 +52,8 @@ func NewPulseAudioControlWidget(bw *BaseWidget, opts WidgetConfig) (*PulseAudioC
 		return nil, err
 	}
 
+	widget.assetDir = "pulseaudio_control"
+
 	return &PulseAudioControlWidget{
 		ButtonWidget: widget,
 		appName:      appName,
@@ -78,9 +80,9 @@ func (w *PulseAudioControlWidget) Update() error {
 	var label string
 	if sinkInputData != nil {
 		if sinkInputData.muted {
-			icon = "assets/muted.png"
+			icon = "muted"
 		} else {
-			icon = "assets/not_muted.png"
+			icon = "not_muted"
 		}
 		if w.showTitle && sinkInputData.title != "" {
 			label = sinkInputData.title
@@ -88,13 +90,11 @@ func (w *PulseAudioControlWidget) Update() error {
 			label = w.appName
 		}
 	} else {
-		icon = "assets/not_playing.png"
+		icon = "not_playing"
 		label = w.appName
 	}
 
-	if err := w.LoadImage(icon); err != nil {
-		return err
-	}
+	w.loadThemeOrWidgetAssetIcon(icon)
 
 	w.label = stripTextTo(10, label)
 	return w.ButtonWidget.Update()

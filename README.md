@@ -295,11 +295,17 @@ A widget that can controls a specific pulseaudio input sink (like Rhythmbox, Fir
     appName = "Application name" # Like "Rhythmbox"
     mode = "mute" # Only mute is supported at the moment.
     showTitle = true # optional
+    theme = "fancy" # optional
 ```
 
 This widget is using "pactl" and "pacmd".
 
-You can use `pacmd list-sink-inputs` to see the current sinks. Use the value of "application.name" for appName.
+You can use `pacmd list-sink-inputs` to see the current sinks. Use the value of 
+"application.name" for appName.
+
+In case `theme` is set corresponding icons with correct names need to be placed 
+in `~/.local/share/deckmaster/themes/[theme]`. The default icons with their
+respective names can be found [here](https://github.com/Someone0nEarth/deckmaster/tree/master/assets/pulseaudio_control).
 
 ### Actions
 
