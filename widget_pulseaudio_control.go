@@ -124,10 +124,12 @@ func (w *PulseAudioControlWidget) TriggerAction(hold bool) {
 
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "can't toggle mute for pulseaudio app "+w.appName, err)
+		return
 	}
 
 	if sinkInputData == nil {
 		fmt.Fprintln(os.Stderr, "No running sink found for pulseaudio app "+w.appName, err)
+		return
 	}
 
 	toggleMute(sinkInputData.index)
