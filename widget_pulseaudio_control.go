@@ -85,28 +85,31 @@ func (w *PulseAudioControlWidget) Update() error {
 		return err
 	}
 
-	var icon string
-	var label string
-	if sinkInputData != nil {
-		if sinkInputData.muted {
-			icon = "muted"
-		} else {
-			icon = "playing"
-		}
-		if w.showTitle && sinkInputData.title != "" {
-			label = sinkInputData.title
-		} else {
-			label = w.appName
-		}
-	} else {
-		icon = "not_playing"
-		label = w.appName
-	}
+	label := w.getLabel(sinkInputData)
+	icon := w.getIcon(sinkInputData)
 
 	w.loadThemeOrWidgetAssetIcon(icon)
 
 	w.label = stripTextTo(10, label)
 	return w.ButtonWidget.Update()
+}
+
+func (w *PulseAudioControlWidget) getLabel(sinkInputData *sinkInputData) string {
+	if w.showTitle && sinkInputData != nil && sinkInputData.title != "" {
+		return sinkInputData.title
+	}
+	return w.appName
+}
+
+func (w *PulseAudioControlWidget) getIcon(sinkInputData *sinkInputData) string {
+	if sinkInputData == nil {
+		return "not_playing"
+	}
+	if sinkInputData.muted {
+		return "muted"
+	} else {
+		return "playing"
+	}
 }
 
 // TriggerAction gets called when a button is pressed.
