@@ -293,7 +293,8 @@ A widget that can controls a specific pulseaudio input sink (like Rhythmbox, Fir
   id = "pulseAudioControl"
   [keys.widget.config]
     appName = "Application name" # Like "Rhythmbox"
-    mode = "mute"
+    mode = "up"
+    mode_hold = "mute"
     showTitle = true # optional
     useAppIcon = true # optional
     theme = "fancy" # optional
@@ -304,7 +305,9 @@ This widget is using "pactl" and "pacmd".
 You can use `pacmd list-sink-inputs` to see the current sinks. Use the value of 
 "application.name" for appName.
 
-Current supported modes are "mute" (toggles mute), "up" (raising volume) and "down" (lowering volume).
+Supported `mode`s are "mute" (toggles mute), "up" (raising volume) and "down" (lowering volume).
+
+Use `mold_hold` for modes when holding teh button.
 
 In case of `useAppIcon` is set to true, it shows the corresponding app icon while playing.
 Sometimes, it is not possible to receive the icon from the running app. In this case, the default

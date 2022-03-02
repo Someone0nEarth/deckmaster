@@ -27,6 +27,7 @@ type PulseAudioControlWidget struct {
 
 	appName    string
 	mode       string
+	mode_hold  string
 	showTitle  bool
 	useAppIcon bool
 
@@ -55,6 +56,11 @@ func NewPulseAudioControlWidget(bw *BaseWidget, opts WidgetConfig) (*PulseAudioC
 		return nil, err
 	}
 
+	var mode_hold string
+	if err := ConfigValue(opts.Config["mode_hold"], &mode_hold); err != nil {
+		return nil, err
+	}
+
 	var showTitle bool
 	_ = ConfigValue(opts.Config["showTitle"], &showTitle)
 
@@ -73,6 +79,7 @@ func NewPulseAudioControlWidget(bw *BaseWidget, opts WidgetConfig) (*PulseAudioC
 		ButtonWidget: widget,
 		appName:      appName,
 		mode:         mode,
+		mode_hold:    mode_hold,
 		showTitle:    showTitle,
 		useAppIcon:   useAppIcon,
 
@@ -163,7 +170,14 @@ func (w *PulseAudioControlWidget) TriggerAction(hold bool) {
 		return
 	}
 
-	switch w.mode {
+	var mode string
+	if hold {
+		mode = w.mode_hold
+	} else {
+		mode = w.mode
+	}
+
+	switch mode {
 	case "mute":
 		toggleMute(sinkInputData.index)
 	case "up":
