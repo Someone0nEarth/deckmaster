@@ -264,6 +264,36 @@ func (x Xorg) waitForEvent(events chan<- xgb.Event) {
 	}
 }
 
+// Try to get the icon of a window for a given pid
+func (x *Xorg) getIconFromWindow(pid uint) (image.Image, error) {
+	clientIds, err := ewmh.ClientListGet(x.util)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Could not get list of windows\n")
+		return nil, err
+	}
+
+	for _, clientId := range clientIds {
+		windowPid, err := ewmh.WmPidGet(x.util, clientId)
+
+		if err != nil {
+			continue
+		}
+
+		if pid == windowPid{
+			icon, err := x.icon(clientId)
+			if err != nil {
+				verbosef("Could not get icon for window %d with pid %d", clientId, pid)
+				return nil, err
+			} else {
+				return icon, nil
+			}
+		}
+	}
+
+	verbosef("Could not find a window icon for pid %d", pid)
+	return nil, errors.New("no window with given pid")
+}
+
 /*
 func (x Xorg) queryIdle() time.Duration {
 	info, err := screensaver.QueryInfo(x.conn, xproto.Drawable(x.root)).Reply()

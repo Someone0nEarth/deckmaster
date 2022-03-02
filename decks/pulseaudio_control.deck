@@ -7,6 +7,7 @@
       appName = "Firefox"
       mode = "mute"
       showTitle = false
+      useAppIcon = true
 
 [[keys]]
   index = 1
@@ -17,4 +18,26 @@
       appName = "Rhythmbox"
       mode = "mute"
       showTitle = true
+
+[[keys]]
+  index = 2
+  [keys.widget]
+    id = "pulseAudioControl"
+    interval = 1000
+    [keys.widget.config]
+      appName = "Firefox"
+      mode = "mute"
+      showTitle = true
+      useAppIcon = true
+
+[[keys]]
+  index = 3
+  [keys.widget]
+    id = "pulseAudioControl"
+    interval = 1000
+    [keys.widget.config]
+      appName = "Rhythmbox"
+      mode = "mute"
+      showTitle = false
+      useAppIcon = true
       

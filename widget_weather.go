@@ -193,7 +193,7 @@ func (w *WeatherWidget) Update() error {
 	}
 
 	w.label = temp
-	w.loadThemeOrWidgetAssetIcon(iconName)
+	w.loadAndSetThemeOrWidgetAssetIcon(iconName)
 
 	return w.ButtonWidget.Update()
 }

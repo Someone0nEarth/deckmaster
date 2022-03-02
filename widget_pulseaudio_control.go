@@ -2,18 +2,21 @@ package main
 
 import (
 	"fmt"
+	"image"
 	"os"
 	"os/exec"
 	"regexp"
+	"strconv"
 	"sync"
 )
 
 const (
-	regexExpression     = `index: ([0-9]+)[\s\S]*?muted: (no|yes)[\s\S]*?media.name = \"(.*?)\"[\s\S]*?application.name = \"(.*?)\"`
+	regexExpression     = `index: ([0-9]+)[\s\S]*?muted: (no|yes)[\s\S]*?media.name = \"(.*?)\"[\s\S]*?application.name = \"(.*?)\"[\s\S]*?application.process.id = \"(.*?)\"`
 	regexGroupClientId  = 1
 	regexGroupMuted     = 2
 	regexGroupMediaName = 3
 	regexGroupAppName   = 4
+	regexGroupAppPid    = 5
 
 	listInputSinksCommand = "pacmd list-sink-inputs"
 )
@@ -22,18 +25,22 @@ const (
 type PulseAudioControlWidget struct {
 	*ButtonWidget
 
-	appName   string
-	mode      string
-	showTitle bool
+	appName    string
+	mode       string
+	showTitle  bool
+	useAppIcon bool
 
 	update      bool
 	updateMutex sync.RWMutex
+
+	failingAppIcon bool
 }
 
 type sinkInputData struct {
-	muted bool
-	title string
-	index string
+	muted  bool
+	title  string
+	index  string
+	appPid uint64
 }
 
 // NewPulseAudioControlWidget returns a new PulseAudioControlWidget.
@@ -50,6 +57,10 @@ func NewPulseAudioControlWidget(bw *BaseWidget, opts WidgetConfig) (*PulseAudioC
 
 	var showTitle bool
 	_ = ConfigValue(opts.Config["showTitle"], &showTitle)
+
+	var useAppIcon bool
+	_ = ConfigValue(opts.Config["useAppIcon"], &useAppIcon)
+
 	widget, err := NewButtonWidget(bw, opts)
 
 	if err != nil {
@@ -63,6 +74,9 @@ func NewPulseAudioControlWidget(bw *BaseWidget, opts WidgetConfig) (*PulseAudioC
 		appName:      appName,
 		mode:         mode,
 		showTitle:    showTitle,
+		useAppIcon:   useAppIcon,
+
+		failingAppIcon: false,
 	}, nil
 }
 
@@ -85,13 +99,32 @@ func (w *PulseAudioControlWidget) Update() error {
 		return err
 	}
 
-	label := w.getLabel(sinkInputData)
-	icon := w.getIcon(sinkInputData)
+	iconImage := w.getIcon(sinkInputData)
+	w.SetImage(iconImage)
 
-	w.loadThemeOrWidgetAssetIcon(icon)
+	w.label = stripTextTo(10, w.getLabel(sinkInputData))
 
-	w.label = stripTextTo(10, label)
 	return w.ButtonWidget.Update()
+}
+
+func (w *PulseAudioControlWidget) getIcon(sinkInputData *sinkInputData) image.Image {
+	var appImage image.Image
+	if w.showAppIcon(sinkInputData) {
+		appImage, _ = xorg.getIconFromWindow(uint(sinkInputData.appPid))
+
+		if appImage != nil {
+			return appImage
+		} else {
+			w.failingAppIcon = true
+			fmt.Fprintf(os.Stderr, "not able to receive icon from application '%s'. Using default icon as fallback.\n", w.appName)
+		}
+	}
+
+	return w.loadThemeOrWidgetAssetIcon(w.getIconName(sinkInputData))
+}
+
+func (w *PulseAudioControlWidget) showAppIcon(sinkInputData *sinkInputData) bool {
+	return w.useAppIcon && !w.failingAppIcon && sinkInputData != nil && !sinkInputData.muted
 }
 
 func (w *PulseAudioControlWidget) getLabel(sinkInputData *sinkInputData) string {
@@ -101,7 +134,7 @@ func (w *PulseAudioControlWidget) getLabel(sinkInputData *sinkInputData) string 
 	return w.appName
 }
 
-func (w *PulseAudioControlWidget) getIcon(sinkInputData *sinkInputData) string {
+func (w *PulseAudioControlWidget) getIconName(sinkInputData *sinkInputData) string {
 	if sinkInputData == nil {
 		return "not_playing"
 	}
@@ -115,7 +148,7 @@ func (w *PulseAudioControlWidget) getIcon(sinkInputData *sinkInputData) string {
 // TriggerAction gets called when a button is pressed.
 func (w *PulseAudioControlWidget) TriggerAction(hold bool) {
 	if w.mode != "mute" {
-		fmt.Fprintln(os.Stderr, "unknown mode:", w.mode)
+		fmt.Fprintln(os.Stderr, "pulse audio control: unknown mode:", w.mode)
 		return
 	}
 
@@ -126,12 +159,12 @@ func (w *PulseAudioControlWidget) TriggerAction(hold bool) {
 	sinkInputData, err := getSinkInputDataForApp(w.appName)
 
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "can't toggle mute for pulseaudio app "+w.appName, err)
+		fmt.Fprintln(os.Stderr, "can't get sink date for pulseaudio app "+w.appName, err)
 		return
 	}
 
 	if sinkInputData == nil {
-		fmt.Fprintln(os.Stderr, "No running sink found for pulseaudio app "+w.appName, err)
+		fmt.Fprintln(os.Stderr, "no running sink found for pulseaudio app "+w.appName, err)
 		return
 	}
 
@@ -169,6 +202,7 @@ func getSinkInputDataForApp(appName string) (*sinkInputData, error) {
 			sinkData.index = matches[match][regexGroupClientId]
 			sinkData.muted = yesOrNoToBool(matches[match][regexGroupMuted])
 			sinkData.title = matches[match][regexGroupMediaName]
+			sinkData.appPid, _ = strconv.ParseUint(matches[match][regexGroupAppPid], 10, 64)
 		}
 	}
 

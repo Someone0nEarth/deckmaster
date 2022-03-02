@@ -295,6 +295,7 @@ A widget that can controls a specific pulseaudio input sink (like Rhythmbox, Fir
     appName = "Application name" # Like "Rhythmbox"
     mode = "mute" # Only mute is supported at the moment.
     showTitle = true # optional
+    useAppIcon = true # optional
     theme = "fancy" # optional
 ```
 
@@ -302,6 +303,10 @@ This widget is using "pactl" and "pacmd".
 
 You can use `pacmd list-sink-inputs` to see the current sinks. Use the value of 
 "application.name" for appName.
+
+In case of `useAppIcon` is set to true, it shows the corresponding app icon while playing.
+Sometimes, it is not possible to receive the icon from the running app. In this case, the default
+playing icon will be used.
 
 In case `theme` is set corresponding icons with correct names need to be placed 
 in `~/.local/share/deckmaster/themes/[theme]`. The default icons with their

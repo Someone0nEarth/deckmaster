@@ -74,7 +74,12 @@ func (w *ButtonWidget) LoadImage(path string) error {
 	return nil
 }
 
-func (w *ButtonWidget) loadThemeOrWidgetAssetIcon(iconName string) {
+func (w *ButtonWidget) loadAndSetThemeOrWidgetAssetIcon(iconName string) {
+	icon := w.loadThemeOrWidgetAssetIcon(iconName)
+	w.SetImage(icon)
+}
+
+func (w *ButtonWidget) loadThemeOrWidgetAssetIcon(iconName string) image.Image {
 	var icon image.Image
 	imagePath := filepath.Join("assets", w.assetDir, iconName+".png")
 	if w.theme != "" {
@@ -87,8 +92,7 @@ func (w *ButtonWidget) loadThemeOrWidgetAssetIcon(iconName string) {
 	} else {
 		icon = loadWidgetAssetImage(imagePath)
 	}
-
-	w.SetImage(icon)
+	return icon
 }
 
 // SetImage updates the widget's icon.
