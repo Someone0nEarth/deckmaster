@@ -147,11 +147,6 @@ func (w *PulseAudioControlWidget) getIconName(sinkInputData *sinkInputData) stri
 
 // TriggerAction gets called when a button is pressed.
 func (w *PulseAudioControlWidget) TriggerAction(hold bool) {
-	if w.mode != "mute" {
-		fmt.Fprintln(os.Stderr, "pulse audio control: unknown mode:", w.mode)
-		return
-	}
-
 	w.updateMutex.Lock()
 	defer w.updateMutex.Unlock()
 	w.update = true
@@ -168,7 +163,16 @@ func (w *PulseAudioControlWidget) TriggerAction(hold bool) {
 		return
 	}
 
-	toggleMute(sinkInputData.index)
+	switch w.mode {
+	case "mute":
+		toggleMute(sinkInputData.index)
+	case "up":
+		volumeUp(sinkInputData.index)
+	case "down":
+		volumeDown(sinkInputData.index)
+	default:
+		fmt.Fprintln(os.Stderr, "unkown pulseaudio control mode: "+w.appName)
+	}
 }
 
 func toggleMute(sinkIndex string) {
@@ -176,6 +180,22 @@ func toggleMute(sinkIndex string) {
 
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "can't toggle mute for pulseaudio sink index: "+sinkIndex, err)
+	}
+}
+
+func volumeUp(sinkIndex string) {
+	err := exec.Command("sh", "-c", "pactl set-sink-input-volume "+sinkIndex+" +6554").Run()
+
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "can't volume up for pulseaudio sink index: "+sinkIndex, err)
+	}
+}
+
+func volumeDown(sinkIndex string) {
+	err := exec.Command("sh", "-c", "pactl set-sink-input-volume "+sinkIndex+" -6554").Run()
+
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "can't volume down for pulseaudio sink index: "+sinkIndex, err)
 	}
 }
 

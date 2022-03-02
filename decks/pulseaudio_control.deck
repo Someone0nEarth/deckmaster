@@ -40,4 +40,26 @@
       mode = "mute"
       showTitle = false
       useAppIcon = true
+
+[[keys]]
+  index = 4
+  [keys.widget]
+    id = "pulseAudioControl"
+    interval = 1000
+    [keys.widget.config]
+      appName = "Rhythmbox"
+      mode = "up"
+      showTitle = true
+      useAppIcon = true
+
+[[keys]]
+  index = 5
+  [keys.widget]
+    id = "pulseAudioControl"
+    interval = 1000
+    [keys.widget.config]
+      appName = "Rhythmbox"
+      mode = "down"
+      showTitle = true
+      useAppIcon = true
       
