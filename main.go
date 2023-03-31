@@ -108,6 +108,12 @@ func eventLoop(dev *streamdeck.Device, tch chan interface{}) error {
 				continue
 			}
 
+			if k.NotHoldable {
+				verbosef("Triggering not holdable action for key %d", k.Index)
+				deck.triggerAction(dev, k.Index, false)
+				continue
+			}
+
 			var state bool
 			if ks, ok := keyStates.Load(k.Index); ok {
 				state = ks.(bool)

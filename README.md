@@ -58,6 +58,7 @@ SUBSYSTEM=="usb", ATTRS{idVendor}=="0fd9", ATTRS{idProduct}=="006d", MODE:="666"
 SUBSYSTEM=="usb", ATTRS{idVendor}=="0fd9", ATTRS{idProduct}=="0080", MODE:="666", GROUP="plugdev", SYMLINK+="streamdeck"
 SUBSYSTEM=="usb", ATTRS{idVendor}=="0fd9", ATTRS{idProduct}=="0063", MODE:="666", GROUP="plugdev", SYMLINK+="streamdeck-mini"
 SUBSYSTEM=="usb", ATTRS{idVendor}=="0fd9", ATTRS{idProduct}=="006c", MODE:="666", GROUP="plugdev", SYMLINK+="streamdeck-xl"
+SUBSYSTEM=="usb", ATTRS{idVendor}=="0fd9", ATTRS{idProduct}=="0084", MODE:="666", GROUP="plugdev", SYMLINK+="streamdeck-plus"
 ```
 
 Make sure your user is part of the `plugdev` group and reload the rules with
@@ -164,6 +165,19 @@ Optionally, you can configure an update `interval` for each widget:
 
 The attribute `interval` defines the time in `ms` between two consecutive
 updates of a widget.
+
+#### Touch Screen Segments for widgets
+
+Optionally, you can configure the screen `segment` index for displaying the widget on the screen,
+e.g. the touch screen of the Elgato Stream Deck+ device (which has 4 segments).
+
+You can see some config examples in `decks/streamdeck-plus.deck` .
+
+```toml
+[keys.widget]
+  id = "button"
+  segment = 0
+```
 
 #### Button
 

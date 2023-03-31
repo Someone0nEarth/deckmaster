@@ -80,7 +80,8 @@ func (w *TopWidget) Update() error {
 		w.fillColor = color.RGBA{166, 155, 182, 255}
 	}
 
-	size := int(w.dev.Pixels)
+	size := w.getMaxImageSize().Dy()
+
 	margin := size / 18
 	img := image.NewRGBA(image.Rect(0, 0, size, size))
 

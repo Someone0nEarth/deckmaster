@@ -32,14 +32,15 @@ type Widget interface {
 
 // BaseWidget provides common functionality required by all widgets.
 type BaseWidget struct {
-	base       string
-	key        uint8
-	action     *ActionConfig
-	actionHold *ActionConfig
-	dev        *streamdeck.Device
-	background image.Image
-	lastUpdate time.Time
-	interval   time.Duration
+	base               string
+	key                uint8
+	action             *ActionConfig
+	actionHold         *ActionConfig
+	dev                *streamdeck.Device
+	background         image.Image
+	lastUpdate         time.Time
+	interval           time.Duration
+	screenSegmentIndex *uint8
 }
 
 // Key returns the key a widget is mapped to.
@@ -79,20 +80,21 @@ func (w *BaseWidget) Update() error {
 }
 
 // NewBaseWidget returns a new BaseWidget.
-func NewBaseWidget(dev *streamdeck.Device, base string, index uint8, action, actionHold *ActionConfig, bg image.Image) *BaseWidget {
+func NewBaseWidget(dev *streamdeck.Device, base string, index uint8, action, actionHold *ActionConfig, screenSegmentIndex *uint8, bg image.Image) *BaseWidget {
 	return &BaseWidget{
-		base:       base,
-		key:        index,
-		action:     action,
-		actionHold: actionHold,
-		dev:        dev,
-		background: bg,
+		base:               base,
+		key:                index,
+		action:             action,
+		actionHold:         actionHold,
+		dev:                dev,
+		background:         bg,
+		screenSegmentIndex: screenSegmentIndex,
 	}
 }
 
 // NewWidget initializes a widget.
 func NewWidget(dev *streamdeck.Device, base string, kc KeyConfig, bg image.Image) (Widget, error) {
-	bw := NewBaseWidget(dev, base, kc.Index, kc.Action, kc.ActionHold, bg)
+	bw := NewBaseWidget(dev, base, kc.Index, kc.Action, kc.ActionHold, kc.Widget.ScreenSegmentIndex, bg)
 
 	switch kc.Widget.ID {
 	case "button":
@@ -134,8 +136,11 @@ func NewWidget(dev *streamdeck.Device, base string, kc KeyConfig, bg image.Image
 func (w *BaseWidget) render(dev *streamdeck.Device, fg image.Image) error {
 	w.lastUpdate = time.Now()
 
-	pixels := int(dev.Pixels)
-	img := image.NewRGBA(image.Rect(0, 0, pixels, pixels))
+	imageSize := w.getMaxImageSize()
+	imageWidth := imageSize.Dx()
+	imageHeight := imageSize.Dy()
+
+	img := image.NewRGBA(image.Rect(0, 0, imageWidth, imageHeight))
 	if w.background != nil {
 		draw.Draw(img, img.Bounds(), w.background, image.Point{}, draw.Over)
 	}
@@ -143,7 +148,11 @@ func (w *BaseWidget) render(dev *streamdeck.Device, fg image.Image) error {
 		draw.Draw(img, img.Bounds(), fg, image.Point{}, draw.Over)
 	}
 
-	return dev.SetImage(w.key, img)
+	if w.screenSegmentIndex != nil {
+		return dev.SetTouchScreenImage(*w.screenSegmentIndex, img)
+	} else {
+		return dev.SetImage(w.key, img)
+	}
 }
 
 // change the interval a widget gets rendered in.
@@ -153,6 +162,32 @@ func (w *BaseWidget) setInterval(interval time.Duration, defaultInterval time.Du
 	}
 
 	w.interval = interval
+}
+
+func (w *BaseWidget) getMaxImageSize() image.Rectangle {
+	if w.screenSegmentIndex != nil {
+		return image.Rectangle{
+			Min: image.Point{
+				X: 0,
+				Y: 0,
+			},
+			Max: image.Point{
+				X: int(w.dev.ScreenSegmentWidth()),
+				Y: int(w.dev.ScreenSegmentHeight()),
+			},
+		}
+	} else {
+		return image.Rectangle{
+			Min: image.Point{
+				X: 0,
+				Y: 0,
+			},
+			Max: image.Point{
+				X: int(w.dev.Pixels),
+				Y: int(w.dev.Pixels),
+			},
+		}
+	}
 }
 
 func loadImage(path string) (image.Image, error) {

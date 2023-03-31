@@ -65,7 +65,7 @@ func LoadDeck(dev *streamdeck.Device, base string, deck string) (*Deck, error) {
 				return nil, err
 			}
 		} else {
-			w = NewBaseWidget(dev, filepath.Dir(path), i, nil, nil, bg)
+			w = NewBaseWidget(dev, filepath.Dir(path), i, nil, nil, nil, bg)
 		}
 
 		d.Widgets = append(d.Widgets, w)

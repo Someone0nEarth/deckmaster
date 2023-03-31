@@ -76,10 +76,13 @@ func (w *ButtonWidget) SetImage(img image.Image) {
 
 // Update renders the widget.
 func (w *ButtonWidget) Update() error {
-	size := int(w.dev.Pixels)
-	margin := size / 18
-	height := size - (margin * 2)
-	img := image.NewRGBA(image.Rect(0, 0, size, size))
+	imageSize := w.getMaxImageSize()
+	imageHeight := imageSize.Dy()
+	imageWidth := imageSize.Dx()
+
+	margin := imageHeight / 18
+	height := imageHeight - (margin * 2)
+	img := image.NewRGBA(image.Rect(0, 0, imageWidth, imageHeight))
 
 	if w.label != "" {
 		iconsize := int((float64(height) / 3.0) * 2.0)
