@@ -80,21 +80,22 @@ func (w *TopWidget) Update() error {
 		w.fillColor = color.RGBA{166, 155, 182, 255}
 	}
 
-	size := w.getMaxImageSize().Dy()
+	width := w.getMaxImageSize().Dx()
+	height := w.getMaxImageSize().Dy()
 
-	margin := size / 18
-	img := image.NewRGBA(image.Rect(0, 0, size, size))
+	margin := height / 18
+	img := image.NewRGBA(image.Rect(0, 0, width, height))
 
 	draw.Draw(img,
-		image.Rect(12, 6, size-12, size-18),
+		image.Rect(12, 6, width-12, height-18),
 		&image.Uniform{w.color},
 		image.Point{}, draw.Src)
 	draw.Draw(img,
-		image.Rect(13, 7, size-14, size-20),
+		image.Rect(13, 7, width-14, height-20),
 		&image.Uniform{color.RGBA{0, 0, 0, 255}},
 		image.Point{}, draw.Src)
 	draw.Draw(img,
-		image.Rect(14, 7+int(float64(size-26)*(1-value/100)), size-15, size-21),
+		image.Rect(14, 7+int(float64(height-26)*(1-value/100)), width-15, height-21),
 		&image.Uniform{w.fillColor},
 		image.Point{}, draw.Src)
 
@@ -114,7 +115,7 @@ func (w *TopWidget) Update() error {
 
 	// draw description
 	bounds = img.Bounds()
-	bounds.Min.Y = size - 16
+	bounds.Min.Y = height - 16
 	bounds.Max.Y -= margin
 
 	drawString(img,

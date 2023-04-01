@@ -28,7 +28,7 @@ func NewTimeWidget(bw *BaseWidget, opts WidgetConfig) *TimeWidget {
 	var colors []color.Color
 	_ = ConfigValue(opts.Config["color"], &colors)
 
-	layout := NewLayout(int(bw.dev.Pixels))
+	layout := NewLayout(bw.getMaxImageSize().Dx(), bw.getMaxImageSize().Dy())
 	frames := layout.FormatLayout(frameReps, len(formats))
 
 	for i := 0; i < len(formats); i++ {
@@ -51,8 +51,7 @@ func NewTimeWidget(bw *BaseWidget, opts WidgetConfig) *TimeWidget {
 
 // Update renders the widget.
 func (w *TimeWidget) Update() error {
-	size := int(w.dev.Pixels)
-	img := image.NewRGBA(image.Rect(0, 0, size, size))
+	img := image.NewRGBA(w.getMaxImageSize())
 
 	for i := 0; i < len(w.formats); i++ {
 		str := formatTime(time.Now(), w.formats[i])

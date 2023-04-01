@@ -29,7 +29,7 @@ func NewCommandWidget(bw *BaseWidget, opts WidgetConfig) *CommandWidget {
 	var colors []color.Color
 	_ = ConfigValue(opts.Config["color"], &colors)
 
-	layout := NewLayout(int(bw.dev.Pixels))
+	layout := NewLayout(bw.getMaxImageSize().Dx(), bw.getMaxImageSize().Dy())
 	frames := layout.FormatLayout(frameReps, len(commands))
 
 	for i := 0; i < len(commands); i++ {
@@ -52,8 +52,7 @@ func NewCommandWidget(bw *BaseWidget, opts WidgetConfig) *CommandWidget {
 
 // Update renders the widget.
 func (w *CommandWidget) Update() error {
-	size := int(w.dev.Pixels)
-	img := image.NewRGBA(image.Rect(0, 0, size, size))
+	img := image.NewRGBA(w.getMaxImageSize())
 
 	for i := 0; i < len(w.commands); i++ {
 		str, err := runCommand(w.commands[i])

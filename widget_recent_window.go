@@ -48,7 +48,7 @@ func (w *RecentWindowWidget) RequiresUpdate() bool {
 
 // Update renders the widget.
 func (w *RecentWindowWidget) Update() error {
-	img := image.NewRGBA(image.Rect(0, 0, int(w.dev.Pixels), int(w.dev.Pixels)))
+	img := image.NewRGBA(w.getMaxImageSize())
 
 	if int(w.window) < len(recentWindows) {
 		if w.lastID == recentWindows[w.window].ID {
