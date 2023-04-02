@@ -89,7 +89,7 @@ func (w *ButtonWidget) Update() error {
 		bounds := img.Bounds()
 
 		if w.icon != nil {
-			err := drawImage(img,
+			err := drawImageWithResizing(img,
 				w.icon,
 				iconsize,
 				image.Pt(-1, margin))
@@ -111,7 +111,7 @@ func (w *ButtonWidget) Update() error {
 			w.color,
 			image.Pt(-1, -1))
 	} else if w.icon != nil {
-		err := drawImage(img,
+		err := drawImageWithResizing(img,
 			w.icon,
 			height,
 			image.Pt(-1, -1))

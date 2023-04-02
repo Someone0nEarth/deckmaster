@@ -2,6 +2,7 @@
   index = 0
   [keys.widget]
     id = "top"
+    interval = 1000
     [keys.widget.config]
       mode = "cpu"
       fillColor = "#d497de"
@@ -10,6 +11,7 @@
   index = 1
   [keys.widget]
     id = "top"
+    interval = 5000
     [keys.widget.config]
       mode = "memory"
 
@@ -134,6 +136,7 @@
   index = 21
   [keys.widget]
     id = "top"
+    interval = 1000
     segment = 1
     [keys.widget.config]
       mode = "cpu"
@@ -146,10 +149,10 @@
 [[keys]]
   index = 22
   [keys.widget]
-    id = "button"
+    id = "brightness"
     segment = 2
     [keys.widget.config]
-      icon = "assets/go-more.png"
+      icon = "assets/lightmode_white.png"
       label = "Brightness"
   [keys.action]
     device = "sleep"
@@ -178,7 +181,7 @@
   [keys.widget]
     id = "button"
   [keys.action]
-    device = "brightness-10"
+    device = "brightness-5"
 
 # Knob right turn
 [[keys]]
@@ -186,7 +189,7 @@
   [keys.widget]
     id = "button"
   [keys.action]
-    device = "brightness+10"
+    device = "brightness+5"
 
 ##########################
 #### Screen Segment 3 ####

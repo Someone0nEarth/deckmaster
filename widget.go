@@ -126,6 +126,10 @@ func NewWidget(dev *streamdeck.Device, base string, kc KeyConfig, bg image.Image
 
 	case "weather":
 		return NewWeatherWidget(bw, kc.Widget)
+
+	case "brightness":
+		return NewBrightnessWidget(bw, kc.Widget)
+
 	}
 
 	// unknown widget ID
@@ -228,19 +232,26 @@ func flattenImage(img image.Image, clr color.Color) image.Image {
 	return flatten
 }
 
-func drawImage(img *image.RGBA, icon image.Image, size int, pt image.Point) error {
+func drawImageWithResizing(img *image.RGBA, icon image.Image, size int, pt image.Point) error {
+	icon = resize.Resize(uint(size), uint(size), icon, resize.Bilinear)
+	return drawImage(img, icon, pt)
+}
+
+func drawImage(targetImage *image.RGBA, img image.Image, pt image.Point) error {
+	width := img.Bounds().Dx()
+	height := img.Bounds().Dy()
+
 	if pt.X < 0 {
-		xcenter := float64(img.Bounds().Dx()/2.0) - (float64(size) / 2.0)
+		xcenter := float64(targetImage.Bounds().Dx()/2.0) - (float64(width) / 2.0)
 		pt = image.Pt(int(xcenter), pt.Y)
 	}
 	if pt.Y < 0 {
-		ycenter := float64(img.Bounds().Dy()/2.0) - (float64(size) / 2.0)
+		ycenter := float64(targetImage.Bounds().Dy()/2.0) - (float64(height) / 2.0)
 		pt = image.Pt(pt.X, int(ycenter))
 	}
 
-	icon = resize.Resize(uint(size), uint(size), icon, resize.Bilinear)
-	rect := image.Rect(pt.X, pt.Y, pt.X+size, pt.Y+size)
-	draw.Draw(img, rect, icon, image.Point{0, 0}, draw.Src)
+	rect := image.Rect(pt.X, pt.Y, pt.X+width, pt.Y+height)
+	draw.Draw(targetImage, rect, img, image.Point{0, 0}, draw.Src)
 
 	return nil
 }
