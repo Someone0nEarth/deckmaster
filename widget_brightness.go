@@ -20,18 +20,14 @@ type BrightnessWidget struct {
 // NewBrightnessWidget returns a new BrightnessWidget.
 func NewBrightnessWidget(bw *BaseWidget, opts WidgetConfig) (*BrightnessWidget, error) {
 
-	showBar := false
+	showBar := true
 	if opts.Config["bar"] != nil {
 		_ = ConfigValue(opts.Config["bar"], &showBar)
-	} else if bw.screenSegmentIndex != nil {
-		showBar = true
 	}
 
-	showPercentage := false
+	showPercentage := true
 	if opts.Config["percentage"] != nil {
 		_ = ConfigValue(opts.Config["percentage"], &showPercentage)
-	} else if bw.screenSegmentIndex != nil {
-		showPercentage = true
 	}
 
 	buttonWidget, err := NewButtonWidget(bw, opts)
@@ -44,7 +40,6 @@ func NewBrightnessWidget(bw *BaseWidget, opts WidgetConfig) (*BrightnessWidget, 
 		brightness:     getBrightness(),
 		showBar:        showBar,
 		showPercentage: showPercentage,
-		//brightness: uint8(*brightness),
 	}, nil
 }
 
@@ -63,29 +58,22 @@ func getBrightness() uint8 {
 
 // Update renders the widget.
 func (w *BrightnessWidget) Update() error {
+	w.refreshBrightnessValue()
+
 	if w.screenSegmentIndex != nil {
 		return w.updateScreenSegment()
 	}
-
 	return w.updateButton()
 }
 
 func (w *BrightnessWidget) updateScreenSegment() error {
 
 	if !w.showBar && !w.showPercentage {
-		return w.ButtonWidget.Update()
+		return w.updateButton()
 	}
-
-	w.refreshBrightnessValue()
 
 	showLabel := w.label != ""
 	showIcon := w.icon != nil
-
-	percentageString := fmt.Sprintf("%d%%", w.brightness)
-
-	if !showLabel && !w.showBar {
-		return w.updateButtonUsingLabel(percentageString)
-	}
 
 	segmentSize := w.getMaxImageSize()
 	segmentWidth := segmentSize.Dx()
@@ -103,7 +91,7 @@ func (w *BrightnessWidget) updateScreenSegment() error {
 
 	if w.showBar {
 		barLength = 120
-		bar := w.createBar(barLength, barThickness, int(w.brightness))
+		bar := createBar(barLength, barThickness, w.brightness)
 
 		x := 60
 		y := 75
@@ -111,9 +99,10 @@ func (w *BrightnessWidget) updateScreenSegment() error {
 	}
 
 	if w.showPercentage {
-
 		var fontsize float64
 		var xOffset int
+
+		percentageString := fmt.Sprintf("%d%%", w.brightness)
 
 		if w.showBar {
 			fontsize = 12.0
@@ -148,85 +137,167 @@ func (w *BrightnessWidget) updateScreenSegment() error {
 }
 
 func (w *BrightnessWidget) updateButton() error {
+	var percentageLabel string
 
-	if !w.showBar && !w.showPercentage {
-		return w.ButtonWidget.Update()
+	if w.showPercentage {
+		percentageLabel = fmt.Sprintf("%d%%", w.brightness)
 	}
 
+	var percentage *uint8
 	if w.showBar {
-		//TODO
-		fatal("Not supported yet: Showing brightness bar on normal buttons.")
+		percentageValue := w.brightness
+		percentage = &percentageValue
 	}
 
-	if w.label != "" {
-		//TODO Atm w.label is "used" for supporting percentage drawing on normal buttons
-		fatal("Not supported yet: Showing brightness percentage on normal buttons when label is set.")
-	}
+	buttonImage := createButtonImage(w.getMaxImageSize(), w.dev.DPI, w.color, w.icon, w.label, percentageLabel, percentage)
 
-	w.refreshBrightnessValue()
-	brightnessString := fmt.Sprintf("%d%%", w.brightness)
-
-	if w.label == "" && w.showPercentage {
-		return w.updateButtonUsingLabel(brightnessString)
-	}
-
-	//TODO
-	fatal("Unexpected state in widget_brightness updateButton.")
-	return nil
+	return w.render(w.dev, buttonImage)
 }
 
-func (w *ButtonWidget) updateButtonUsingLabel(label string) error {
-	imageSize := w.getMaxImageSize()
-	imageHeight := imageSize.Dy()
-	imageWidth := imageSize.Dx()
+func createButtonImage(bounds image.Rectangle, dpi uint, fontColor color.Color, icon image.Image, label string, percentageLabel string, percentage *uint8) image.Image {
+	imageHeight := bounds.Dy()
+	imageWidth := bounds.Dx()
 
 	margin := imageHeight / 18
 	height := imageHeight - (margin * 2)
+	width := imageWidth - (margin * 2)
 	img := image.NewRGBA(image.Rect(0, 0, imageWidth, imageHeight))
 
-	iconSize := int((float64(height) / 3.0) * 2.0)
-	bounds := img.Bounds()
+	elementCount := 0
 
-	if w.icon != nil {
-		err := drawImageWithResizing(img,
-			w.icon,
-			iconSize,
-			image.Pt(-1, margin))
-
-		if err != nil {
-			return err
-		}
-
-		bounds.Min.Y += iconSize + margin
-		bounds.Max.Y -= margin
+	if label != "" {
+		elementCount++
+	}
+	if percentageLabel != "" {
+		elementCount++
+	}
+	if percentage != nil {
+		elementCount++
 	}
 
-	drawString(img,
-		bounds,
-		ttfFont,
-		label,
-		w.dev.DPI,
-		w.fontsize,
-		w.color,
-		image.Pt(-1, -1))
+	iconRatio := 0.0
+	if icon != nil {
+		switch elementCount {
+		case 0:
+			iconRatio = 1.0
+		case 1:
+			iconRatio = 0.66
+		case 2:
+			iconRatio = 0.5
+		case 3:
+			iconRatio = 0.33
+		}
+	}
 
-	return w.render(w.dev, img)
+	iconSize := int(float64(height) * iconRatio)
+
+	if icon != nil {
+		drawImageWithResizing(img,
+			icon,
+			iconSize,
+			image.Pt(-1, margin))
+	}
+
+	if elementCount > 0 {
+		elementsBounds := image.Rectangle{
+			Min: image.Point{
+				X: 0,
+				Y: 0,
+			},
+			Max: image.Point{
+				X: width,
+				Y: height - (iconSize + margin),
+			},
+		}
+
+		elements := createElementsImage(elementsBounds, dpi, fontColor, elementCount, label, percentageLabel, percentage)
+
+		drawImage(img, elements, image.Pt(margin, iconSize+margin))
+	}
+
+	return img
 }
 
-func (w *BrightnessWidget) createBar(length int, thickness int, percentage int) image.Image {
+func createElementsImage(bounds image.Rectangle, dpi uint, fontColor color.Color, elementCount int, label string, percentageLabel string, percentage *uint8) image.Image {
+	width := bounds.Dx()
+	height := bounds.Dy()
+
+	margin := height / (3 * elementCount)
+	if margin < 5 {
+		margin = 5
+	}
+
+	img := image.NewRGBA(image.Rect(0, 0, width, height))
+	segmentsSize := (height - ((elementCount - 1) * margin)) / elementCount
+
+	segmentPositionY := 0
+	if label != "" {
+		labelBounds := image.Rectangle{}
+
+		labelBounds.Min.X = 0
+		labelBounds.Max.X = width
+
+		labelBounds.Min.Y = 0
+		labelBounds.Max.Y = segmentsSize
+
+		var y int
+		if elementCount == 1 {
+			y = -1
+		} else {
+			y = segmentPositionY + segmentsSize
+
+		}
+		drawString(img, labelBounds, ttfFont, label, dpi, 0, fontColor, image.Pt(-1, y))
+
+		segmentPositionY += (segmentsSize + margin)
+	}
+
+	if percentageLabel != "" {
+
+		labelBounds := image.Rectangle{}
+
+		labelBounds.Min.X = 0
+		labelBounds.Max.X = width
+
+		labelBounds.Min.Y = 0
+		labelBounds.Max.Y = segmentsSize
+
+		var y int
+		if elementCount == 1 {
+			y = -1
+		} else {
+			y = segmentPositionY + segmentsSize
+
+		}
+		drawString(img, labelBounds, ttfFont, percentageLabel, dpi, 0, fontColor, image.Pt(-1, y))
+
+		segmentPositionY += segmentsSize + margin
+	}
+
+	if percentage != nil {
+		bar := createBar(width, segmentsSize-2, *percentage)
+
+		drawImage(img, bar, image.Pt(0, segmentPositionY))
+	}
+
+	return img
+}
+
+func createBar(length int, thickness int, percentage uint8) image.Image {
 	img := image.NewRGBA(image.Rect(0, 0, length, thickness))
 
-	thickPart := int((float64(length) / 100.0) * float64(percentage))
+	thickPartLength := int((float64(length) / 100.0) * float64(percentage))
 
-	for x := 0; x < thickPart; x++ {
+	for x := 0; x < thickPartLength; x++ {
 		for y := 0; y < thickness; y++ {
 			img.Set(x, y, color.White)
 		}
 	}
 
-	yOffset := thickness / 10 * 2
-	for x := thickPart; x < length; x++ {
-		for y := 0; y < thickness-5; y++ {
+	thinThickness := thickness - (thickness / 3)
+	yOffset := (thickness - thinThickness) / 2
+	for x := thickPartLength; x < length; x++ {
+		for y := 0; y < thinThickness; y++ {
 			img.Set(x, y+yOffset, color.Gray16{0x7FFF})
 		}
 	}

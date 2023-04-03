@@ -311,13 +311,8 @@ A widget that displays brightness level of the stream deck.
     percentage = true # optional
 ```
 
+The `bar` and `percentage` are both activated as default.
 The widget supports an optimized displaying on "screen segments" (using `segment`), like the ones on the Stream Deck+.
-The `bar` and `percentage` are both activated as default, if the widget will be displayed on a "screen segment". But if 
-it will be displayed on a "button", both will be deactivated as per default.
-
-Although the displaying on a "button" is restricted at the moment:
-- `bar` is not supported yet
-- `percentage` only works, if no `label` is set
 
 ### Actions
 
