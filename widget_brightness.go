@@ -275,9 +275,9 @@ func createElementsImage(bounds image.Rectangle, dpi uint, fontColor color.Color
 	}
 
 	if percentage != nil {
-		bar := createBar(width, segmentsSize-2, *percentage)
+		bar := createBar(width, segmentsSize-margin, *percentage)
 
-		drawImage(img, bar, image.Pt(0, segmentPositionY))
+		drawImage(img, bar, image.Pt(0, segmentPositionY+(margin/2)))
 	}
 
 	return img
