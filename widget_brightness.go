@@ -149,6 +149,15 @@ func (w *BrightnessWidget) updateButton() error {
 	return w.render(w.dev, buttonImage)
 }
 
+func (w *BrightnessWidget) calculateWidth(img *image.RGBA, font *truetype.Font, text string, fontsize float64) int {
+	extent, _ := ftContext(img, font, w.dev.DPI, fontsize).DrawString(text, freetype.Pt(0, 0))
+	return extent.X.Floor()
+}
+
+func (w *BrightnessWidget) refreshBrightnessValue() {
+	w.brightness = getBrightness()
+}
+
 func createButtonImage(bounds image.Rectangle, dpi uint, fontColor color.Color, icon image.Image, label string, percentageLabel string, percentage *uint8) image.Image {
 	imageHeight := bounds.Dy()
 	imageWidth := bounds.Dx()
@@ -158,43 +167,42 @@ func createButtonImage(bounds image.Rectangle, dpi uint, fontColor color.Color, 
 	width := imageWidth - (margin * 2)
 	img := image.NewRGBA(image.Rect(0, 0, imageWidth, imageHeight))
 
-	elementCount := elementsCount(label, percentageLabel, percentage)
+	numberOfSegments := countSegments(label, percentageLabel, percentage)
 
+	iconSize := 0
 	iconSizeRatio := 0.0
 	if icon != nil {
-		iconSizeRatio = calculateIconSizeRatio(elementCount)
-	}
+		iconSizeRatio = calculateIconSizeRatio(numberOfSegments)
 
-	iconSize := int(float64(height) * iconSizeRatio)
+		iconSize = int(float64(height) * iconSizeRatio)
 
-	if icon != nil {
 		drawImageWithResizing(img, icon, iconSize, image.Pt(-1, margin))
 	}
 
-	if elementCount > 0 {
-		elementsBounds := createRectangle(0, 0, width, height-(iconSize+margin))
+	if numberOfSegments > 0 {
+		elementBounds := createRectangle(0, 0, width, height-(iconSize+margin))
 
-		elements := createElementsImage(elementsBounds, dpi, fontColor, elementCount, label, percentageLabel, percentage)
+		elementImage := createImageElement(elementBounds, dpi, fontColor, numberOfSegments, label, percentageLabel, percentage)
 
-		drawImage(img, elements, image.Pt(margin, iconSize+margin))
+		drawImage(img, elementImage, image.Pt(margin, iconSize+margin))
 	}
 
 	return img
 }
 
-func elementsCount(label string, percentageLabel string, percentage *uint8) uint8 {
-	elementCount := uint8(0)
+func countSegments(label string, percentageLabel string, percentage *uint8) uint8 {
+	count := uint8(0)
 
 	if label != "" {
-		elementCount++
+		count++
 	}
 	if percentageLabel != "" {
-		elementCount++
+		count++
 	}
 	if percentage != nil {
-		elementCount++
+		count++
 	}
-	return elementCount
+	return count
 }
 
 func createRectangle(x1 int, y1 int, x2 int, y2 int) image.Rectangle {
@@ -210,98 +218,31 @@ func createRectangle(x1 int, y1 int, x2 int, y2 int) image.Rectangle {
 	}
 }
 
-func calculateIconSizeRatio(elementCount uint8) float64 {
-	if elementCount == 0 {
+func calculateIconSizeRatio(numberOfSegments uint8) float64 {
+	if numberOfSegments == 0 {
 		return 1.0
-	} else if elementCount == 1 {
+	} else if numberOfSegments == 1 {
 		return 0.66
 	} else {
-		return math.Round(1.0/float64(elementCount)*100) / 100
+		return math.Round(1.0/float64(numberOfSegments)*100) / 100
 	}
 }
 
-func createElementsImage(bounds image.Rectangle, dpi uint, fontColor color.Color, elementCount uint8, label string, percentageLabel string, percentage *uint8) image.Image {
-	width := bounds.Dx()
-	height := bounds.Dy()
+func createImageElement(bounds image.Rectangle, dpi uint, fontColor color.Color, numberOfSegments uint8, label string, percentageLabel string, percentage *uint8) image.Image {
 
-	verticalMargin := calculateVerticalMargin(height, elementCount)
+	element := NewImageElement(bounds, numberOfSegments, dpi, fontColor)
 
-	img := image.NewRGBA(image.Rect(0, 0, width, height))
-	segmentsSize := (height - ((int(elementCount) - 1) * verticalMargin)) / int(elementCount)
-
-	segmentPositionY := 0
 	if label != "" {
-		elementBounds := createRectangle(0, 0, width, segmentsSize)
-
-		y := calculateStringElementY(elementCount, segmentPositionY, segmentsSize)
-
-		drawString(img, elementBounds, ttfFont, label, dpi, 0, fontColor, image.Pt(-1, y))
-
-		segmentPositionY += segmentsSize + verticalMargin
+		element.DrawStringSegment(label)
 	}
 
 	if percentageLabel != "" {
-		elementBounds := createRectangle(0, 0, width, segmentsSize)
-
-		y := calculateStringElementY(elementCount, segmentPositionY, segmentsSize)
-
-		drawString(img, elementBounds, ttfFont, percentageLabel, dpi, 0, fontColor, image.Pt(-1, y))
-
-		segmentPositionY += segmentsSize + verticalMargin
+		element.DrawStringSegment(percentageLabel)
 	}
 
 	if percentage != nil {
-		bar := createBar(width, segmentsSize-verticalMargin, *percentage)
-
-		drawImage(img, bar, image.Pt(0, segmentPositionY+(verticalMargin/2)))
+		element.DrawBarSegment(percentage)
 	}
 
-	return img
-}
-
-func calculateStringElementY(elementCount uint8, segmentPositionY int, segmentsSize int) int {
-	if elementCount == 1 {
-		return -1
-	} else {
-		return segmentPositionY + segmentsSize
-	}
-}
-
-func calculateVerticalMargin(height int, elementCount uint8) int {
-	margin := height / (3 * int(elementCount))
-	if margin < 5 {
-		margin = 5
-	}
-	return margin
-}
-
-func createBar(length int, thickness int, percentage uint8) image.Image {
-	img := image.NewRGBA(image.Rect(0, 0, length, thickness))
-
-	thickPartLength := int((float64(length) / 100.0) * float64(percentage))
-
-	for x := 0; x < thickPartLength; x++ {
-		for y := 0; y < thickness; y++ {
-			img.Set(x, y, color.White)
-		}
-	}
-
-	thinThickness := thickness - (thickness / 3)
-	yOffset := (thickness - thinThickness) / 2
-	for x := thickPartLength; x < length; x++ {
-		for y := 0; y < thinThickness; y++ {
-			img.Set(x, y+yOffset, color.Gray16{0x7FFF})
-		}
-	}
-
-	return img
-}
-
-func (w *BrightnessWidget) calculateWidth(img *image.RGBA, font *truetype.Font, text string, fontsize float64) int {
-	extent, _ := ftContext(img, font, w.dev.DPI, fontsize).DrawString(text, freetype.Pt(0, 0))
-	return extent.X.Floor()
-}
-
-func (w *BrightnessWidget) refreshBrightnessValue() {
-	w.brightness = getBrightness()
+	return element.img
 }
