@@ -82,8 +82,8 @@ func (w *BrightnessWidget) updateScreenSegment() error {
 
 	segmentImage := image.NewRGBA(image.Rect(0, 0, segmentWidth, segmentHeight))
 
-	var barLength int
-	barThickness := 10
+	var barLength uint
+	barThickness := uint(10)
 
 	iconSize := 50
 	if showIcon {
@@ -121,7 +121,7 @@ func (w *BrightnessWidget) updateScreenSegment() error {
 	}
 
 	if showLabel {
-		labelBounds := createRectangle(0, 0, 100, 20)
+		labelBounds := createRectangle(100, 20)
 
 		x := 0
 		y := 20
@@ -159,39 +159,39 @@ func (w *BrightnessWidget) refreshBrightnessValue() {
 }
 
 func createButtonImage(bounds image.Rectangle, dpi uint, fontColor color.Color, icon image.Image, label string, percentageLabel string, percentage *uint8) image.Image {
-	imageHeight := bounds.Dy()
-	imageWidth := bounds.Dx()
+	imageHeight := uint(bounds.Dy())
+	imageWidth := uint(bounds.Dx())
 
-	margin := imageHeight / 18
-	height := imageHeight - (margin * 2)
-	width := imageWidth - (margin * 2)
-	img := image.NewRGBA(image.Rect(0, 0, imageWidth, imageHeight))
+	margin := uint(imageHeight / 18)
+	height := uint(imageHeight - (margin * 2))
+	width := uint(imageWidth - (margin * 2))
+	img := image.NewRGBA(image.Rect(0, 0, int(imageWidth), int(imageHeight)))
 
 	numberOfSegments := countSegments(label, percentageLabel, percentage)
 
-	iconSize := 0
+	iconSize := uint(0)
 	iconSizeRatio := 0.0
 	if icon != nil {
 		iconSizeRatio = calculateIconSizeRatio(numberOfSegments)
 
-		iconSize = int(float64(height) * iconSizeRatio)
+		iconSize = uint(float64(height) * iconSizeRatio)
 
-		drawImageWithResizing(img, icon, iconSize, image.Pt(-1, margin))
+		drawImageWithResizing(img, icon, int(iconSize), image.Pt(-1, int(margin)))
 	}
 
 	if numberOfSegments > 0 {
-		elementBounds := createRectangle(0, 0, width, height-(iconSize+margin))
+		elementBounds := createRectangle(width, height-(iconSize+margin))
 
 		elementImage := createImageElement(elementBounds, dpi, fontColor, numberOfSegments, label, percentageLabel, percentage)
 
-		drawImage(img, elementImage, image.Pt(margin, iconSize+margin))
+		drawImage(img, elementImage, image.Pt(int(margin), int(iconSize+margin)))
 	}
 
 	return img
 }
 
-func countSegments(label string, percentageLabel string, percentage *uint8) uint8 {
-	count := uint8(0)
+func countSegments(label string, percentageLabel string, percentage *uint8) uint {
+	count := uint(0)
 
 	if label != "" {
 		count++
@@ -205,20 +205,20 @@ func countSegments(label string, percentageLabel string, percentage *uint8) uint
 	return count
 }
 
-func createRectangle(x1 int, y1 int, x2 int, y2 int) image.Rectangle {
+func createRectangle(width uint, height uint) image.Rectangle {
 	return image.Rectangle{
 		Min: image.Point{
-			X: x1,
-			Y: y1,
+			X: 0,
+			Y: 0,
 		},
 		Max: image.Point{
-			X: x2,
-			Y: y2,
+			X: int(width),
+			Y: int(height),
 		},
 	}
 }
 
-func calculateIconSizeRatio(numberOfSegments uint8) float64 {
+func calculateIconSizeRatio(numberOfSegments uint) float64 {
 	if numberOfSegments == 0 {
 		return 1.0
 	} else if numberOfSegments == 1 {
@@ -228,7 +228,7 @@ func calculateIconSizeRatio(numberOfSegments uint8) float64 {
 	}
 }
 
-func createImageElement(bounds image.Rectangle, dpi uint, fontColor color.Color, numberOfSegments uint8, label string, percentageLabel string, percentage *uint8) image.Image {
+func createImageElement(bounds image.Rectangle, dpi uint, fontColor color.Color, numberOfSegments uint, label string, percentageLabel string, percentage *uint8) image.Image {
 
 	element := NewImageElement(bounds, numberOfSegments, dpi, fontColor)
 
