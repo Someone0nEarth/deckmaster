@@ -7,17 +7,17 @@ import (
 
 // ImageElement for drawing into vertical equal segments considering the ImageElement bounds and number of Segments.
 type ImageElement struct {
-	img              *image.RGBA
-	segmentsSize     uint
-	verticalMargin   uint
-	numberOfSegments uint
-	dpi              uint
-	fontColor        color.Color
-	segmentPositionY uint
+	img                *image.RGBA
+	segmentHeight      uint
+	segmentsInterspace uint
+	numberOfSegments   uint
+	dpi                uint
+	fontColor          color.Color
+	segmentPositionY   uint
 }
 
-// NewImageElement Will "divide" the element bounds into vertical equal segments considering the number of segments.
-func NewImageElement(bounds image.Rectangle, numberOfSegments uint, dpi uint, fontColor color.Color) *ImageElement {
+// NewImageElementWithStrings Will "divide" the element bounds into vertical equal segments considering the number of segments.
+func NewImageElementWithStrings(bounds image.Rectangle, numberOfSegments uint, dpi uint, fontColor color.Color) *ImageElement {
 	element := ImageElement{
 		numberOfSegments: numberOfSegments,
 		dpi:              dpi,
@@ -25,7 +25,22 @@ func NewImageElement(bounds image.Rectangle, numberOfSegments uint, dpi uint, fo
 		segmentPositionY: 0,
 	}
 	element.img = image.NewRGBA(image.Rect(0, 0, bounds.Dx(), bounds.Dy()))
-	element.calculateVerticalMargin()
+	element.calculateSegmentsInterspace()
+	element.calculateSegmentSize()
+
+	return &element
+}
+
+// NewImageElement Will "divide" the element bounds into vertical equal segments considering the number of segments.
+func NewImageElement(bounds image.Rectangle, numberOfSegments uint) *ImageElement {
+	element := ImageElement{
+		numberOfSegments: numberOfSegments,
+		dpi:              0,
+		fontColor:        color.Transparent,
+		segmentPositionY: 0,
+	}
+	element.img = image.NewRGBA(image.Rect(0, 0, bounds.Dx(), bounds.Dy()))
+	element.calculateSegmentsInterspace()
 	element.calculateSegmentSize()
 
 	return &element
@@ -33,20 +48,26 @@ func NewImageElement(bounds image.Rectangle, numberOfSegments uint, dpi uint, fo
 
 // DrawBarSegment will draw a percentage bar into the current segment slot and set the pointer to the next segment
 func (element *ImageElement) DrawBarSegment(percentage *uint8) {
-	bar := createBar(element.width(), element.segmentsSize-element.verticalMargin, *percentage)
+	bar := createBar(element.width(), element.segmentHeight, *percentage)
 
-	drawImage(element.img, bar, image.Pt(0, int(element.segmentPositionY+(element.verticalMargin/2))))
+	drawImage(element.img, bar, image.Pt(0, int(element.segmentPositionY)))
 
 	element.incrementSegmentPositionY()
 }
 
 // DrawStringSegment will draw the text into the current segment slot and set the pointer to the next segment
 func (element *ImageElement) DrawStringSegment(text string) {
-	bounds := createRectangle(element.width(), element.segmentsSize)
+	bounds := createRectangle(element.width(), element.segmentHeight)
 
 	y := element.calculateStringSegmentY(element.segmentPositionY)
 
 	drawString(element.img, bounds, ttfFont, text, element.dpi, 0, element.fontColor, image.Pt(-1, y))
+
+	element.incrementSegmentPositionY()
+}
+
+func (element *ImageElement) DrawIconSegment(icon image.Image) {
+	drawImageWithResizing(element.img, icon, int(element.segmentHeight), image.Pt(-1, int(element.segmentPositionY)))
 
 	element.incrementSegmentPositionY()
 }
@@ -60,7 +81,7 @@ func (element *ImageElement) width() uint {
 }
 
 func (element *ImageElement) incrementSegmentPositionY() {
-	element.segmentPositionY += element.segmentsSize + element.verticalMargin
+	element.segmentPositionY += element.segmentHeight + element.segmentsInterspace
 }
 
 func (element *ImageElement) calculateStringSegmentY(segmentPositionY uint) int {
@@ -68,20 +89,20 @@ func (element *ImageElement) calculateStringSegmentY(segmentPositionY uint) int 
 		// y < 0 will center the string vertically (see widget.go drawString())
 		return -1
 	} else {
-		return int(segmentPositionY + element.segmentsSize)
+		return int(segmentPositionY + element.segmentHeight)
 	}
 }
 
-func (element *ImageElement) calculateVerticalMargin() {
-	margin := element.height() / (3 * element.numberOfSegments)
-	if margin < 5 {
-		margin = 5
+func (element *ImageElement) calculateSegmentsInterspace() {
+	interspace := element.height() / (3 * element.numberOfSegments)
+	if interspace < 5 {
+		interspace = 5
 	}
-	element.verticalMargin = margin
+	element.segmentsInterspace = interspace
 }
 
 func (element *ImageElement) calculateSegmentSize() {
-	element.segmentsSize = (element.height() - ((element.numberOfSegments - 1) * element.verticalMargin)) / element.numberOfSegments
+	element.segmentHeight = (element.height() - ((element.numberOfSegments - 1) * element.segmentsInterspace)) / element.numberOfSegments
 }
 
 func createBar(length uint, thickness uint, percentage uint8) image.Image {

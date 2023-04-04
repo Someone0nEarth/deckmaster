@@ -165,26 +165,35 @@ func createButtonImage(bounds image.Rectangle, dpi uint, fontColor color.Color, 
 	margin := uint(imageHeight / 18)
 	height := uint(imageHeight - (margin * 2))
 	width := uint(imageWidth - (margin * 2))
+
 	img := image.NewRGBA(image.Rect(0, 0, int(imageWidth), int(imageHeight)))
 
 	numberOfSegments := countSegments(label, percentageLabel, percentage)
 
-	iconSize := uint(0)
-	iconSizeRatio := 0.0
-	if icon != nil {
-		iconSizeRatio = calculateIconSizeRatio(numberOfSegments)
+	interspaceElements := uint(0)
+	if icon != nil && numberOfSegments > 0 {
+		interspaceElements = margin
+	}
 
+	iconSize := uint(0)
+	if icon != nil {
+		iconSizeRatio := calculateIconSizeRatio(numberOfSegments)
 		iconSize = uint(float64(height) * iconSizeRatio)
 
-		drawImageWithResizing(img, icon, int(iconSize), image.Pt(-1, int(margin)))
+		elementBounds := createRectangle(width, iconSize)
+		iconElement := NewImageElement(elementBounds, 1)
+		iconElement.DrawIconSegment(icon)
+
+		drawImage(img, iconElement.img, image.Pt(int(margin), int(margin)))
 	}
 
 	if numberOfSegments > 0 {
-		elementBounds := createRectangle(width, height-(iconSize+margin))
+		elementBounds := createRectangle(width, height-(iconSize+interspaceElements))
 
 		elementImage := createImageElement(elementBounds, dpi, fontColor, numberOfSegments, label, percentageLabel, percentage)
 
-		drawImage(img, elementImage, image.Pt(int(margin), int(iconSize+margin)))
+		y := int(margin + iconSize + interspaceElements)
+		drawImage(img, elementImage, image.Pt(int(margin), y))
 	}
 
 	return img
@@ -229,8 +238,7 @@ func calculateIconSizeRatio(numberOfSegments uint) float64 {
 }
 
 func createImageElement(bounds image.Rectangle, dpi uint, fontColor color.Color, numberOfSegments uint, label string, percentageLabel string, percentage *uint8) image.Image {
-
-	element := NewImageElement(bounds, numberOfSegments, dpi, fontColor)
+	element := NewImageElementWithStrings(bounds, numberOfSegments, dpi, fontColor)
 
 	if label != "" {
 		element.DrawStringSegment(label)
