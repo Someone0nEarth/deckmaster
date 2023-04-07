@@ -10,6 +10,9 @@ import (
 	"github.com/golang/freetype/truetype"
 )
 
+// TODO move this to device
+const TOUCHSCREEN_DPI = uint(200)
+
 // BrightnessWidget is a widget for controlling the device brightness.
 type BrightnessWidget struct {
 	*ButtonWidget
@@ -67,70 +70,6 @@ func (w *BrightnessWidget) Update() error {
 	return w.updateButton()
 }
 
-func (w *BrightnessWidget) updateScreenSegment() error {
-
-	if !w.showBar && !w.showPercentage {
-		return w.updateButton()
-	}
-
-	showLabel := w.label != ""
-	showIcon := w.icon != nil
-
-	segmentSize := w.getMaxImageSize()
-	segmentWidth := segmentSize.Dx()
-	segmentHeight := segmentSize.Dy()
-
-	segmentImage := image.NewRGBA(image.Rect(0, 0, segmentWidth, segmentHeight))
-
-	var barLength uint
-	barThickness := uint(10)
-
-	iconSize := 50
-	if showIcon {
-		drawImageWithResizing(segmentImage, w.icon, iconSize, image.Pt(0, 30))
-	}
-
-	if w.showBar {
-		barLength = 120
-		bar := createBar(barLength, barThickness, w.brightness)
-
-		x := 60
-		y := 75
-		drawImage(segmentImage, bar, image.Pt(x, y))
-	}
-
-	if w.showPercentage {
-		var fontsize float64
-		var xOffset int
-
-		percentageString := fmt.Sprintf("%d%%", w.brightness)
-
-		if w.showBar {
-			fontsize = 12.0
-			actualWidth := w.calculateWidth(segmentImage, ttfFont, percentageString, fontsize)
-			xOffset = actualWidth + 20
-		} else {
-			fontsize = 20.0
-			actualWidth := w.calculateWidth(segmentImage, ttfFont, percentageString, fontsize)
-			xOffset = actualWidth + 50
-		}
-
-		x := segmentWidth - xOffset
-		y := 65
-		drawString(segmentImage, image.Rectangle{}, ttfFont, percentageString, w.dev.DPI, fontsize, w.color, image.Pt(x, y))
-	}
-
-	if showLabel {
-		labelBounds := createRectangle(100, 20)
-
-		x := 0
-		y := 20
-		drawString(segmentImage, labelBounds, ttfFont, w.label, w.dev.DPI, 0, w.color, image.Pt(x, y))
-	}
-
-	return w.render(w.dev, segmentImage)
-}
-
 func (w *BrightnessWidget) updateButton() error {
 	var percentageLabel string
 
@@ -144,9 +83,28 @@ func (w *BrightnessWidget) updateButton() error {
 		percentage = &percentageValue
 	}
 
-	buttonImage := createButtonImage(w.getMaxImageSize(), w.dev.DPI, w.color, w.icon, w.label, percentageLabel, percentage)
+	img := createButtonImage(w.getMaxImageSize(), w.dev.DPI, w.color, w.icon, w.label, percentageLabel, percentage)
 
-	return w.render(w.dev, buttonImage)
+	return w.render(w.dev, img)
+}
+
+func (w *BrightnessWidget) updateScreenSegment() error {
+	var percentageLabel string
+
+	if w.showPercentage {
+		percentageLabel = fmt.Sprintf("%d%%", w.brightness)
+	}
+
+	var percentage *uint8
+	if w.showBar {
+		percentageValue := w.brightness
+		percentage = &percentageValue
+	}
+
+	dpi := TOUCHSCREEN_DPI
+	img := createSegmentImage(w.getMaxImageSize(), dpi, w.color, w.icon, w.label, percentageLabel, percentage)
+
+	return w.render(w.dev, img)
 }
 
 func (w *BrightnessWidget) calculateWidth(img *image.RGBA, font *truetype.Font, text string, fontsize float64) int {
@@ -162,9 +120,9 @@ func createButtonImage(bounds image.Rectangle, dpi uint, fontColor color.Color, 
 	imageHeight := uint(bounds.Dy())
 	imageWidth := uint(bounds.Dx())
 
-	margin := uint(imageHeight / 18)
-	height := uint(imageHeight - (margin * 2))
-	width := uint(imageWidth - (margin * 2))
+	margin := imageHeight / 18
+	height := imageHeight - (margin * 2)
+	width := imageWidth - (margin * 2)
 
 	img := image.NewRGBA(image.Rect(0, 0, int(imageWidth), int(imageHeight)))
 
@@ -184,19 +142,220 @@ func createButtonImage(bounds image.Rectangle, dpi uint, fontColor color.Color, 
 		iconElement := NewImageElement(elementBounds, 1)
 		iconElement.DrawIconSegment(icon)
 
-		drawImage(img, iconElement.img, image.Pt(int(margin), int(margin)))
+		elementPosition := image.Pt(int(margin), int(margin))
+		drawImage(img, iconElement.img, elementPosition)
+		drawInOrOutLine(img, elementPosition, elementBounds)
 	}
 
 	if numberOfSegments > 0 {
 		elementBounds := createRectangle(width, height-(iconSize+interspaceElements))
 
-		elementImage := createImageElement(elementBounds, dpi, fontColor, numberOfSegments, label, percentageLabel, percentage)
+		elementImage := createButtonImageElement(elementBounds, dpi, fontColor, numberOfSegments, label, percentageLabel, percentage)
 
 		y := int(margin + iconSize + interspaceElements)
-		drawImage(img, elementImage, image.Pt(int(margin), y))
+		elementPosition := image.Pt(int(margin), y)
+		drawImage(img, elementImage, elementPosition)
+		drawInOrOutLine(img, elementPosition, elementBounds)
 	}
 
 	return img
+}
+
+func createSegmentImage(bounds image.Rectangle, dpi uint, fontColor color.Color, icon image.Image, label string, percentageLabel string, percentage *uint8) image.Image {
+	imageHeight := uint(bounds.Dy())
+	imageWidth := uint(bounds.Dx())
+
+	margin := int(imageHeight / 18)
+	height := imageHeight - uint(margin*2)
+	width := imageWidth - uint(margin*2)
+
+	interspaceElements := uint(margin)
+
+	img := image.NewRGBA(image.Rect(0, 0, int(imageWidth), int(imageHeight)))
+
+	boundsWithoutMargin := image.Rectangle{}
+	boundsWithoutMargin.Max.X = int(width)
+	boundsWithoutMargin.Max.Y = int(height)
+
+	iconBounds := boundsWithoutMargin
+	labelBounds := boundsWithoutMargin
+	valueBounds := boundsWithoutMargin
+
+	initialPosition := image.Pt(margin, margin)
+	iconPosition := initialPosition
+	labelPosition := initialPosition
+	valuePosition := initialPosition
+
+	hasIcon, hasLabel, hasPercentageValue, hasPercentageBar, numberOfItems := countScreenSegmentElements(icon, label, percentageLabel, percentage)
+
+	if numberOfItems <= 2 {
+		return createButtonImage(bounds, dpi, fontColor, icon, label, percentageLabel, percentage)
+	}
+
+	if hasLabel {
+		labelHeight := uint(float64(height)/4.5) - interspaceElements/2
+		labelBounds.Max.Y = int(labelHeight)
+
+		if hasIcon {
+			iconHeight := height - labelHeight - interspaceElements
+			iconBounds.Max.Y = int(iconHeight)
+
+			iconPosition.Y = margin + int(labelHeight+interspaceElements)
+		}
+
+		if hasPercentageValue || hasPercentageBar {
+			valueHeight := height - labelHeight - interspaceElements
+			valueBounds.Max.Y = int(valueHeight)
+
+			valuePosition.Y = margin + int(labelHeight+interspaceElements)
+		}
+	}
+
+	if hasIcon {
+		iconWidth := uint(float64(width)/3.0) - interspaceElements/2
+		iconBounds.Max.X = int(iconWidth)
+
+		valueWidth := width - iconWidth - interspaceElements
+		valueBounds.Max.X = int(valueWidth)
+
+		iconPosition.X = margin
+		valuePosition.X = margin + int(iconWidth+interspaceElements)
+	}
+
+	if hasLabel {
+		labelElement := NewImageElementWithStrings(labelBounds, 1, dpi, fontColor)
+		labelElement.DrawStringSegment(label, -1, false)
+
+		drawImage(img, labelElement.img, labelPosition)
+
+		//drawInOrOutLine(img, labelPosition, labelBounds)
+		drawInOrOutLine(img, labelPosition, labelElement.img.Bounds())
+
+	}
+
+	if hasIcon {
+		iconElement := NewImageElement(iconBounds, 1)
+		iconElement.DrawIconSegment(icon)
+
+		drawImage(img, iconElement.img, iconPosition)
+		drawInOrOutLine(img, iconPosition, iconBounds)
+	}
+
+	if hasPercentageValue && hasPercentageBar {
+		valueElement := NewImageElementWithStrings(valueBounds, 3, dpi, fontColor)
+
+		valueElement.DrawBlankSegment()
+		valueElement.DrawStringSegment(percentageLabel, 1, false)
+		valueElement.DrawBarSegment(percentage)
+
+		drawImage(img, valueElement.img, valuePosition)
+		drawInOrOutLine(img, valuePosition, valueBounds)
+	} else if hasPercentageValue {
+		valueElement := NewImageElementWithStrings(valueBounds, 1, dpi, fontColor)
+
+		valueElement.DrawStringSegment(percentageLabel, 0, true)
+
+		drawImage(img, valueElement.img, valuePosition)
+		drawInOrOutLine(img, valuePosition, valueBounds)
+	} else if hasPercentageBar {
+		valueElement := NewImageElement(valueBounds, 2)
+
+		valueElement.DrawBlankSegment()
+		valueElement.DrawBarSegment(percentage)
+
+		drawImage(img, valueElement.img, valuePosition)
+		drawInOrOutLine(img, valuePosition, valueBounds)
+	}
+
+	return img
+}
+
+func drawInOrOutLine(img *image.RGBA, boundsPosition image.Point, bounds image.Rectangle) {
+
+	//TODO Implementing a debug log routine
+	if false {
+		drawOutlineLine(img, boundsPosition, bounds)
+		drawInline(img, boundsPosition, bounds)
+	}
+}
+
+func drawInline(img *image.RGBA, boundsPosition image.Point, boundss image.Rectangle) {
+
+	rgbaGreenYellow := color.RGBA{
+		R: 0xad,
+		G: 0xff,
+		B: 0x2f,
+		A: 0,
+	}
+
+	translatedBounds := boundss.Add(boundsPosition)
+
+	for x := translatedBounds.Min.X; x < translatedBounds.Max.X; x++ {
+
+		img.Set(x, translatedBounds.Min.Y, rgbaGreenYellow)
+		img.Set(x, translatedBounds.Max.Y, rgbaGreenYellow)
+	}
+
+	for y := translatedBounds.Min.Y; y < translatedBounds.Max.Y; y++ {
+		img.Set(translatedBounds.Min.X, y, rgbaGreenYellow)
+		img.Set(translatedBounds.Max.X, y, rgbaGreenYellow)
+	}
+}
+
+func drawOutlineLine(img *image.RGBA, boundsPosition image.Point, bounds image.Rectangle) {
+	rgbaRed := color.RGBA{
+		R: 0xff,
+		G: 0x0,
+		B: 0x0,
+		A: 0,
+	}
+
+	translatedBounds := bounds.Add(boundsPosition)
+	translatedBounds.Min.X -= 1
+	translatedBounds.Min.Y -= 1
+	translatedBounds.Max.X += 1
+	translatedBounds.Max.Y += 1
+
+	for x := translatedBounds.Min.X; x < translatedBounds.Max.X; x++ {
+
+		img.Set(x, translatedBounds.Min.Y, rgbaRed)
+		img.Set(x, translatedBounds.Max.Y, rgbaRed)
+	}
+
+	for y := translatedBounds.Min.Y; y < translatedBounds.Max.Y; y++ {
+		img.Set(translatedBounds.Min.X, y, rgbaRed)
+		img.Set(translatedBounds.Max.X, y, rgbaRed)
+	}
+}
+
+func countScreenSegmentElements(icon image.Image, label string, percentageLabel string, percentage *uint8) (bool, bool, bool, bool, uint) {
+	count := uint(0)
+
+	hasIcon := false
+	if icon != nil {
+		count++
+		hasIcon = true
+	}
+
+	hasLabel := false
+	if label != "" {
+		count++
+		hasLabel = true
+	}
+
+	hasPercentage := false
+	if percentageLabel != "" {
+		hasPercentage = true
+		count++
+	}
+
+	hasBar := false
+	if percentage != nil {
+		hasBar = true
+		count++
+	}
+
+	return hasIcon, hasLabel, hasPercentage, hasBar, count
 }
 
 func countSegments(label string, percentageLabel string, percentage *uint8) uint {
@@ -237,15 +396,21 @@ func calculateIconSizeRatio(numberOfSegments uint) float64 {
 	}
 }
 
-func createImageElement(bounds image.Rectangle, dpi uint, fontColor color.Color, numberOfSegments uint, label string, percentageLabel string, percentage *uint8) image.Image {
+func createButtonImageElement(bounds image.Rectangle, dpi uint, fontColor color.Color, numberOfSegments uint, label string, percentageLabel string, percentage *uint8) image.Image {
 	element := NewImageElementWithStrings(bounds, numberOfSegments, dpi, fontColor)
 
+	centerVertically := false
+	if numberOfSegments == 1 {
+		centerVertically = true
+	}
+
 	if label != "" {
-		element.DrawStringSegment(label)
+
+		element.DrawStringSegment(label, 0, centerVertically)
 	}
 
 	if percentageLabel != "" {
-		element.DrawStringSegment(percentageLabel)
+		element.DrawStringSegment(percentageLabel, 0, centerVertically)
 	}
 
 	if percentage != nil {

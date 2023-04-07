@@ -1,8 +1,13 @@
 package main
 
 import (
+	"fmt"
+	"github.com/golang/freetype"
+	"github.com/golang/freetype/truetype"
+	"golang.org/x/image/font"
 	"image"
 	"image/color"
+	"os"
 )
 
 // ImageElement for drawing into vertical equal segments considering the ImageElement bounds and number of Segments.
@@ -56,18 +61,40 @@ func (element *ImageElement) DrawBarSegment(percentage *uint8) {
 }
 
 // DrawStringSegment will draw the text into the current segment slot and set the pointer to the next segment
-func (element *ImageElement) DrawStringSegment(text string) {
+func (element *ImageElement) DrawStringSegment(text string, alignmentX int, centerVertically bool) {
 	bounds := createRectangle(element.width(), element.segmentHeight)
+	ttFont := ttfFont
 
-	y := element.calculateStringSegmentY(element.segmentPositionY)
+	fontsize, actualWidth, _, descent := maxFontSize(ttFont, element.dpi, bounds.Dx(), bounds.Dy(), text)
 
-	drawString(element.img, bounds, ttfFont, text, element.dpi, 0, element.fontColor, image.Pt(-1, y))
+	var x int
+	centerHorizontally := false
+
+	if alignmentX == 0 {
+		x = 0
+		centerHorizontally = true
+	} else if alignmentX == -1 {
+		x = 0
+	} else {
+		x = int(element.width()) - actualWidth
+	}
+
+	y := int(element.segmentPositionY) + int(element.segmentHeight) - descent
+	drawString2(element.img, bounds, ttFont, text, element.dpi, fontsize, element.fontColor, image.Pt(x, y), centerHorizontally, centerVertically)
 
 	element.incrementSegmentPositionY()
 }
 
 func (element *ImageElement) DrawIconSegment(icon image.Image) {
-	drawImageWithResizing(element.img, icon, int(element.segmentHeight), image.Pt(-1, int(element.segmentPositionY)))
+
+	var iconSize uint
+	if element.width() < element.segmentHeight {
+		iconSize = element.width()
+	} else {
+		iconSize = element.segmentHeight
+	}
+
+	drawImageWithResizing(element.img, icon, int(iconSize), image.Pt(-1, -1))
 
 	element.incrementSegmentPositionY()
 }
@@ -127,4 +154,256 @@ func createBar(length uint, thickness uint, percentage uint8) image.Image {
 	}
 
 	return img
+}
+
+func (element *ImageElement) calculateWidth(img *image.RGBA, ttFont *truetype.Font, text string, fontsize float64) int {
+	extent, _ := ftContext(img, ttFont, element.dpi, fontsize).DrawString(text, freetype.Pt(0, 0))
+	return extent.X.Floor()
+}
+
+func (element *ImageElement) DrawBlankSegment() {
+	element.incrementSegmentPositionY()
+}
+
+func maxFontSize(ttFont *truetype.Font, dpi uint, width, height int, text string) (float64, int, int, int) {
+
+	startingFontsize := float64(height) / (float64(dpi) / (72.0))
+	initialFontsize := startingFontsize * 1.4
+
+	_, _, heightFittingFontsize := determineHeightFittingFontsize(dpi, ttFont, initialFontsize, height, text)
+
+	actualWidth, fontsize := determineWidthFittingFontsize(dpi, ttFont, heightFittingFontsize, width, text)
+
+	actualHeight, ascent, descent := actualStringHeight(float64(dpi), ttFont, fontsize, text)
+
+	//TODO Implementing a debug log routine
+	if true {
+		approximateHeight := approximatedMaxFontHeight(dpi, ttFont, fontsize)
+		maxHeight, _, _ := maxFontHeight(float64(dpi), ttFont, fontsize)
+
+		fmt.Printf("String '%s'\n\n", text)
+
+		fmt.Printf(
+			"Given %dw x %dh\n"+
+				"String %dw x %dh\n"+
+				"start %.1f, ini %.1f, fit H %.1f, fit W %.1f\n"+
+				"asc %d, desc %d\n"+
+				"approxi: %dh\n"+
+				"max: %dh\n"+
+				"\n",
+			width,
+			height,
+			actualWidth,
+			actualHeight,
+			startingFontsize,
+			initialFontsize,
+			heightFittingFontsize,
+			fontsize,
+			ascent,
+			descent,
+			approximateHeight,
+			maxHeight,
+		)
+
+		maxFontHeight2, maxAscent, maxDescent := maxFontHeight(float64(dpi), ttFont, initialFontsize)
+		actualHeight2, ascent2, descent2 := actualStringHeight(float64(dpi), ttFont, initialFontsize, text)
+		actualWidth2 := actualStringWidth(float64(dpi), ttFont, initialFontsize, text)
+
+		fmt.Printf(
+			"Font/string metrics with initial fontsize\n"+
+				"String %dw x %dh\n"+
+				"asc %d, desc %d\n"+
+				"max: %dh, asc %d, desc %d\n"+
+				"-----------\n",
+			actualWidth2,
+			actualHeight2,
+			ascent2,
+			descent2,
+			maxFontHeight2,
+			maxAscent,
+			maxDescent,
+		)
+	}
+
+	//TODO Implementing a debug log routine
+	if false {
+
+		context := freetype.NewContext()
+		context.SetDPI(float64(dpi))
+		context.SetFontSize(fontsize)
+		context.SetFont(ttFont)
+		contextHeight := context.PointToFixed(fontsize).Ceil()
+
+		print("Maxfontsize: ")
+		fmt.Printf("%.2f", fontsize)
+		print(", height: ")
+		print(height)
+		print(", actualHeight ")
+		print(actualHeight)
+		print(", contextHeight ")
+		print(contextHeight)
+		print(", asc ")
+		fmt.Printf("%d ", ascent)
+		print(", des ")
+		fmt.Printf("%d ", descent)
+		println()
+		println()
+	}
+
+	return fontsize, actualWidth, ascent, descent
+}
+
+func determineHeightFittingFontsize(dpi uint, ttFont *truetype.Font, startingFontsize float64, maxHeight int, text string) (int, int, float64) {
+	var ascent int
+	var descent int
+	fontsize := startingFontsize
+
+	actualHeight := 0
+	for {
+		actualHeight, ascent, descent = actualStringHeight(float64(dpi), ttFont, fontsize, text)
+
+		if actualHeight <= maxHeight {
+			break
+		} else {
+			fontsize -= 0.25
+		}
+
+		if fontsize <= 0 {
+			//TODO err
+		}
+	}
+	//TODO ascent & descent arent used yet
+	return ascent, descent, fontsize
+}
+
+func determineWidthFittingFontsize(dpi uint, ttFont *truetype.Font, startingFontsize float64, maxWidth int, text string) (int, float64) {
+	var actualWidth int
+	fontsize := startingFontsize
+
+	for {
+		actualWidth = actualStringWidth(float64(dpi), ttFont, fontsize, text)
+
+		if actualWidth <= maxWidth {
+			break
+		} else {
+			fontsize -= 0.25
+		}
+
+		if fontsize <= 0 {
+			//TODO err
+		}
+	}
+	return actualWidth, fontsize
+}
+
+func actualStringWidth(dpi float64, ttFont *truetype.Font, fontsize float64, text string) (width int) {
+	opts := truetype.Options{}
+	opts.Size = fontsize
+	opts.DPI = dpi
+
+	face := truetype.NewFace(ttFont, &opts)
+
+	return font.MeasureString(face, text).Ceil()
+}
+
+// TODO Not using atm. But could be part of "image element" lib?
+// fast, but not accurate
+func approximatedMaxFontHeight(dpi uint, ttFont *truetype.Font, fontsize float64) int {
+	context := freetype.NewContext()
+	context.SetDPI(float64(dpi))
+	context.SetFontSize(fontsize)
+	context.SetFont(ttFont)
+	return context.PointToFixed(fontsize).Ceil()
+}
+
+// TODO Not using atm. But could be part of "image element" lib?
+// slow, but accurate
+func maxFontHeight(dpi float64, ttFont *truetype.Font, fontsize float64) (height int, ascent int, descent int) {
+	opts := truetype.Options{}
+	opts.Size = fontsize
+	opts.DPI = dpi
+	face := truetype.NewFace(ttFont, &opts)
+
+	metrics := face.Metrics()
+	return metrics.Ascent.Ceil() + metrics.Descent.Ceil(), metrics.Ascent.Ceil(), metrics.Descent.Ceil()
+}
+
+func actualStringHeight(dpi float64, ttFont *truetype.Font, fontsize float64, text string) (height int, ascent int, descent int) {
+	opts := truetype.Options{}
+	opts.Size = fontsize
+	opts.DPI = dpi
+	face := truetype.NewFace(ttFont, &opts)
+
+	bounds, _ := font.BoundString(face, text)
+
+	ascent = (-bounds.Min.Y).Ceil()
+	descent = bounds.Max.Y.Ceil()
+
+	height = ascent + descent
+
+	//TODO Implementing a debug log routine
+	if false {
+		heightDebug := (+bounds.Max.Y + (-bounds.Min.Y)).Ceil()
+
+		heightFloat := float64(bounds.Max.Y-bounds.Min.Y) / 64
+		width := (bounds.Max.X >> 6) - (bounds.Min.X >> 6)
+		print(width)
+		print(" x ")
+		fmt.Printf("%d ", height)
+		print(" height float ")
+		fmt.Printf(" %.2f ", heightFloat)
+		print(" height ceil ")
+		fmt.Printf("%d ", heightDebug)
+		print(" pt ")
+		fmt.Printf(" %.2f ", fontsize)
+
+		ascentFloat := float64(-bounds.Min.Y) / 64.0
+		descentFloat := float64(+bounds.Max.Y) / 64.0
+
+		print(" asc ")
+		fmt.Printf("%.2f ", ascentFloat)
+		print(" des ")
+		fmt.Printf("%.2f ", descentFloat)
+
+		print(" asc ")
+		fmt.Printf("%d ", ascent)
+		print(" des ")
+		fmt.Printf("%d ", descent)
+
+		print(" asc2 ")
+		fmt.Printf("%d ", (-bounds.Min.Y).Ceil())
+		print(" des2 ")
+		fmt.Printf("%d ", +bounds.Max.Y.Ceil())
+		println()
+	}
+
+	return height, ascent, descent
+}
+
+// TODO replace main.drawString() with this
+func drawString2(img *image.RGBA, bounds image.Rectangle, ttf *truetype.Font, text string, dpi uint, fontsize float64, color color.Color, pt image.Point, centerHorizontally bool, centerVertically bool) {
+	c := ftContext(img, ttf, dpi, fontsize)
+
+	if fontsize <= 0 {
+		fontsize, _, _, _ = maxFontSize(ttf, dpi, bounds.Dx(), bounds.Dy(), text)
+		c.SetFontSize(fontsize)
+	}
+
+	//TODO calculating actual string width/height is very expensive. Providing as parameter, for the cases if they were already calculated
+	if centerHorizontally {
+		actualWidth := actualStringWidth(float64(dpi), ttf, fontsize, text)
+		xCenter := float64(bounds.Dx())/2.0 - (float64(actualWidth) / 2.0)
+		pt = image.Pt(bounds.Min.X+int(xCenter), pt.Y)
+	}
+	if centerVertically {
+		actualHeight, _, _ := actualStringHeight(float64(dpi), ttf, fontsize, text)
+		yCenter := float64(bounds.Dy()/2.0) + (float64(actualHeight) / 2.0)
+		pt = image.Pt(pt.X, bounds.Min.Y+int(yCenter))
+	}
+
+	c.SetSrc(image.NewUniform(color))
+	if _, err := c.DrawString(text, freetype.Pt(pt.X, pt.Y)); err != nil {
+		fmt.Fprintf(os.Stderr, "Can't render string: %s\n", err)
+		return
+	}
 }
