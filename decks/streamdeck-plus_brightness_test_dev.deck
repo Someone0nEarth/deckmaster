@@ -1,0 +1,230 @@
+[[keys]]
+  index = 0
+  [keys.widget]
+    id = "time"
+    [keys.widget.config]
+      format = "%H:%i;%l;%d"
+      font = "bold;regular;thin"
+      layout = "0x0+120x36;0x40+120x24;0x70+120x24"
+
+[[keys]]
+  index = 1
+  [keys.widget]
+    id = "brightness"
+    [keys.widget.config]
+      percentage = false
+  [keys.action]
+    device = "sleep"
+
+[[keys]]
+  index = 2
+  [keys.widget]
+    id = "brightness"
+    [keys.widget.config]
+  [keys.action]
+    device = "sleep"
+
+[[keys]]
+  index = 3
+  [keys.widget]
+    id = "brightness"
+    [keys.widget.config]
+      bar = false
+  [keys.action]
+    device = "sleep"
+
+[[keys]]
+  index = 4
+  [keys.widget]
+    id = "brightness"
+    [keys.widget.config]
+      icon = "assets/lightmode_white.png"
+      bar = false
+  [keys.action]
+    device = "sleep"
+
+[[keys]]
+  index = 5
+  [keys.widget]
+    id = "brightness"
+    [keys.widget.config]
+      icon = "assets/lightmode_white.png"
+      percentage = true
+      bar = true
+  [keys.action]
+    device = "sleep"
+
+[[keys]]
+  index = 6
+  [keys.widget]
+    id = "brightness"
+    [keys.widget.config]
+      icon = "assets/lightmode_white.png"
+      percentage = true
+      bar = true
+      label = "Brightness"
+  [keys.action]
+    device = "sleep"
+
+[[keys]]
+  index = 7
+  [keys.widget]
+    id = "brightness"
+    [keys.widget.config]
+      percentage = true
+      bar = true
+      label = "Brightness"
+  [keys.action]
+    device = "sleep"
+
+##############################
+#### Touch Screen Swiping ####
+
+# Swipe to left
+[[keys]]
+  index = 29
+  [keys.widget]
+    id = "button"
+  [keys.action]
+    deck = "relative/path/to/another_left.deck"
+
+# Swipe to right
+[[keys]]
+  index = 28
+  [keys.widget]
+    id = "button"
+  [keys.action]
+    deck = "relative/path/to/another_right.deck"
+
+##########################
+#### Screen Segment 0 ####
+
+# Screen + short touch
+[[keys]]
+  index = 20
+  [keys.widget]
+    id = "brightness"
+    segment = 0
+    [keys.widget.config]
+      icon = "assets/lightmode_white.png"
+      bar = false
+      percentage = false
+  [keys.action]
+    keycode = "Mute"
+
+# Long touch
+[[keys]]
+  index = 24
+  [keys.widget]
+    id = "button"
+  [keys.action]
+    keycode = "Mute"
+
+# Knob short and long press
+[[keys]]
+  index = 8
+  [keys.widget]
+    id = "button"
+  [keys.action]
+    keycode = "Mute"
+  [keys.action_hold]
+    keycode = "Mute"
+
+# Knob left turn
+[[keys]]
+  index = 12
+  [keys.widget]
+    id = "button"
+  [keys.action]
+    keycode = "VolumeDown"
+
+# Knob right turn
+[[keys]]
+  index = 16
+  [keys.widget]
+    id = "button"
+  [keys.action]
+    keycode = "VolumeUp"
+
+##########################
+#### Screen Segment 1 ####
+
+# Screen
+[[keys]]
+  index = 9
+  [keys.widget]
+    id = "brightness"
+    segment = 1
+  [keys.widget.config]
+    icon = "assets/lightmode_white.png"
+  [keys.action]
+    device = "sleep"
+  [keys.action_hold]
+    device = "sleep"
+
+##########################
+#### Screen Segment 2 ####
+
+# Screen + short touch
+[[keys]]
+  index = 22
+  [keys.widget]
+    id = "brightness"
+    segment = 2
+    [keys.widget.config]
+      icon = "assets/lightmode_white.png"
+      label = "BrightnesssjJÜL’ÉÇƒ"
+  [keys.action]
+    device = "sleep"
+
+# Long touch
+[[keys]]
+  index = 26
+  [keys.widget]
+    id = "button"
+  [keys.action]
+    device = "sleep"
+
+# Knob short and long press
+[[keys]]
+  index = 10
+  [keys.widget]
+    id = "button"
+  [keys.action]
+    device = "sleep"
+  [keys.action_hold]
+    device = "sleep"
+
+# Knob left turn
+[[keys]]
+  index = 14
+  [keys.widget]
+    id = "button"
+  [keys.action]
+    device = "brightness-5"
+
+# Knob right turn
+[[keys]]
+  index = 18
+  [keys.widget]
+    id = "button"
+  [keys.action]
+    device = "brightness+5"
+
+###########################
+##### Screen Segment 3 ####
+
+# Screen
+[[keys]]
+  index = 11
+  [keys.widget]
+    id = "brightness"
+    segment = 3
+  [keys.widget.config]
+    icon = "assets/lightmode_white.png"
+    label = "Brightness"
+    bar = false
+  [keys.action]
+    device = "sleep"
+  [keys.action_hold]
+    device = "sleep"

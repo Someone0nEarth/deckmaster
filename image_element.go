@@ -132,30 +132,6 @@ func (element *ImageElement) calculateSegmentSize() {
 	element.segmentHeight = (element.height() - ((element.numberOfSegments - 1) * element.segmentsInterspace)) / element.numberOfSegments
 }
 
-func createBar(length uint, thickness uint, percentage uint8) image.Image {
-	thicknessInt := int(thickness)
-	lengthInt := int(length)
-	img := image.NewRGBA(image.Rect(0, 0, lengthInt, thicknessInt))
-
-	thickPartLength := int((float64(lengthInt) / 100.0) * float64(percentage))
-
-	for x := 0; x < thickPartLength; x++ {
-		for y := 0; y < thicknessInt; y++ {
-			img.Set(x, y, color.White)
-		}
-	}
-
-	thinThickness := thicknessInt - (thicknessInt / 3)
-	yOffset := (thicknessInt - thinThickness) / 2
-	for x := thickPartLength; x < lengthInt; x++ {
-		for y := 0; y < thinThickness; y++ {
-			img.Set(x, y+yOffset, color.Gray16{0x7FFF})
-		}
-	}
-
-	return img
-}
-
 func (element *ImageElement) calculateWidth(img *image.RGBA, ttFont *truetype.Font, text string, fontsize float64) int {
 	extent, _ := ftContext(img, ttFont, element.dpi, fontsize).DrawString(text, freetype.Pt(0, 0))
 	return extent.X.Floor()
@@ -163,6 +139,45 @@ func (element *ImageElement) calculateWidth(img *image.RGBA, ttFont *truetype.Fo
 
 func (element *ImageElement) DrawBlankSegment() {
 	element.incrementSegmentPositionY()
+}
+
+func (element *ImageElement) debugDrawInOnOutLines(targetImage *image.RGBA, elementPosition image.Point) {
+
+	//TODO Implementing a debug log routine
+	if true {
+
+		if false {
+			bounds := element.img.Bounds()
+			elementBounds := bounds.Bounds().Add(elementPosition)
+
+			debugDrawOutline(targetImage, elementBounds)
+			debugDrawOnLine(targetImage, elementBounds)
+			debugDrawInline(targetImage, elementBounds)
+		}
+
+		if false {
+			segmentPosition := uint(0)
+			for segment := uint(0); segment < element.numberOfSegments; segment++ {
+
+				segmentBounds := image.Rectangle{
+					Min: image.Point{
+						X: 0,
+						Y: int(segmentPosition),
+					},
+					Max: image.Point{
+						X: int(element.width()),
+						Y: int(segmentPosition) + int(element.segmentHeight),
+					},
+				}
+
+				debugDrawOutline(targetImage, segmentBounds.Add(elementPosition))
+				debugDrawOnLine(targetImage, segmentBounds.Add(elementPosition))
+				debugDrawInline(targetImage, segmentBounds.Add(elementPosition))
+
+				segmentPosition += element.segmentHeight + element.segmentsInterspace
+			}
+		}
+	}
 }
 
 func maxFontSize(ttFont *truetype.Font, dpi uint, width, height int, text string) (float64, int, int, int) {
@@ -177,7 +192,7 @@ func maxFontSize(ttFont *truetype.Font, dpi uint, width, height int, text string
 	actualHeight, ascent, descent := actualStringHeight(float64(dpi), ttFont, fontsize, text)
 
 	//TODO Implementing a debug log routine
-	if true {
+	if false {
 		approximateHeight := approximatedMaxFontHeight(dpi, ttFont, fontsize)
 		maxHeight, _, _ := maxFontHeight(float64(dpi), ttFont, fontsize)
 
@@ -380,7 +395,7 @@ func actualStringHeight(dpi float64, ttFont *truetype.Font, fontsize float64, te
 	return height, ascent, descent
 }
 
-// TODO replace main.drawString() with this
+// TODO replace main.drawString() with this?
 func drawString2(img *image.RGBA, bounds image.Rectangle, ttf *truetype.Font, text string, dpi uint, fontsize float64, color color.Color, pt image.Point, centerHorizontally bool, centerVertically bool) {
 	c := ftContext(img, ttf, dpi, fontsize)
 
@@ -405,5 +420,100 @@ func drawString2(img *image.RGBA, bounds image.Rectangle, ttf *truetype.Font, te
 	if _, err := c.DrawString(text, freetype.Pt(pt.X, pt.Y)); err != nil {
 		fmt.Fprintf(os.Stderr, "Can't render string: %s\n", err)
 		return
+	}
+}
+
+func createBar(length uint, thickness uint, percentage uint8) image.Image {
+	thicknessInt := int(thickness)
+	lengthInt := int(length)
+	img := image.NewRGBA(image.Rect(0, 0, lengthInt, thicknessInt))
+
+	thickPartLength := int((float64(lengthInt) / 100.0) * float64(percentage))
+
+	for x := 0; x < thickPartLength; x++ {
+		for y := 0; y < thicknessInt; y++ {
+			img.Set(x, y, color.White)
+		}
+	}
+
+	thinThickness := thicknessInt - (thicknessInt / 3)
+	yOffset := (thicknessInt - thinThickness) / 2
+	for x := thickPartLength; x < lengthInt; x++ {
+		for y := 0; y < thinThickness; y++ {
+			img.Set(x, y+yOffset, color.Gray16{0x7FFF})
+		}
+	}
+
+	return img
+}
+
+func createRectangle(width uint, height uint) image.Rectangle {
+	return image.Rectangle{
+		Min: image.Point{
+			X: 0,
+			Y: 0,
+		},
+		Max: image.Point{
+			X: int(width),
+			Y: int(height),
+		},
+	}
+}
+
+func debugDrawInline(img *image.RGBA, rectangle image.Rectangle) {
+	rgbaGreenBlue := color.RGBA{
+		R: 0x0,
+		G: 0xff,
+		B: 0xff,
+		A: 0,
+	}
+
+	innerLine := rectangle.Bounds()
+	innerLine.Min.X += 1
+	innerLine.Min.Y += 1
+	innerLine.Max.X -= 1
+	innerLine.Max.Y -= 1
+
+	drawRectangle(img, rgbaGreenBlue, innerLine)
+}
+
+func debugDrawOutline(img *image.RGBA, rectangle image.Rectangle) {
+	colour := color.RGBA{
+		R: 0xff,
+		G: 0x0,
+		B: 0xff,
+		A: 0,
+	}
+
+	outLine := rectangle.Bounds()
+	outLine.Min.X -= 1
+	outLine.Min.Y -= 1
+	outLine.Max.X += 1
+	outLine.Max.Y += 1
+
+	drawRectangle(img, colour, outLine)
+}
+
+func debugDrawOnLine(img *image.RGBA, rectangle image.Rectangle) {
+	colour := color.RGBA{
+		R: 0xff,
+		G: 0x0,
+		B: 0x0,
+		A: 0,
+	}
+
+	drawRectangle(img, colour, rectangle)
+}
+
+func drawRectangle(img *image.RGBA, colour color.Color, rectangle image.Rectangle) {
+
+	for x := rectangle.Min.X; x < rectangle.Max.X; x++ {
+		img.Set(x, rectangle.Min.Y, colour)
+		img.Set(x, rectangle.Max.Y-1, colour)
+	}
+
+	for y := rectangle.Min.Y + 1; y < rectangle.Max.Y-1; y++ {
+		img.Set(rectangle.Min.X, y, colour)
+		img.Set(rectangle.Max.X-1, y, colour)
 	}
 }
