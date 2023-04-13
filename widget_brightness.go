@@ -140,23 +140,22 @@ func createButtonImage(bounds image.Rectangle, dpi uint, fontColor color.Color, 
 		iconSize = uint(float64(height) * iconSizeRatio)
 
 		elementBounds := createRectangle(width, iconSize)
-		element := NewImageElement(elementBounds, 1)
-		element.DrawIconSegment(icon)
+		element := NewImageElement(elementBounds)
+		element.AddIconSegment(icon)
 
 		elementPosition := image.Pt(int(margin), int(margin))
-		drawImage(img, element.img, elementPosition)
-		element.debugDrawInOnOutLines(img, elementPosition)
+		element.DrawElement(img, elementPosition)
 	}
 
 	if numberOfSegments > 0 {
 		elementBounds := createRectangle(width, height-(iconSize+interspaceElements))
 
-		elementImage := createButtonImageElement(elementBounds, dpi, fontColor, numberOfSegments, label, percentageLabel, percentage)
+		element := createButtonImageElement(elementBounds, dpi, fontColor, numberOfSegments, label, percentageLabel, percentage)
 
 		y := int(margin + iconSize + interspaceElements)
 		elementPosition := image.Pt(int(margin), y)
-		drawImage(img, elementImage.img, elementPosition)
-		elementImage.debugDrawInOnOutLines(img, elementPosition)
+
+		element.DrawElement(img, elementPosition)
 	}
 
 	return img
@@ -224,52 +223,39 @@ func createSegmentImage(bounds image.Rectangle, dpi uint, fontColor color.Color,
 	}
 
 	if hasLabel {
-		element := NewImageElementWithStrings(labelBounds, 1, dpi, fontColor)
-		element.DrawStringSegment(label, -1, false)
+		element := NewImageElementWithStrings(labelBounds, dpi, fontColor)
+		element.AddTextSegment(label, -1, false)
 
-		drawImage(img, element.img, labelPosition)
-
-		element.debugDrawInOnOutLines(img, labelPosition)
+		element.DrawElement(img, labelPosition)
 	}
 
 	if hasIcon {
-		element := NewImageElement(iconBounds, 1)
-		element.DrawIconSegment(icon)
+		element := NewImageElement(iconBounds)
+		element.AddIconSegment(icon)
 
-		drawImage(img, element.img, iconPosition)
-
-		element.debugDrawInOnOutLines(img, iconPosition)
+		element.DrawElement(img, iconPosition)
 	}
 
+	var element *ImageElement
 	if hasPercentageValue && hasPercentageBar {
-		element := NewImageElementWithStrings(valueBounds, 3, dpi, fontColor)
+		element = NewImageElementWithStrings(valueBounds, dpi, fontColor)
 
-		element.DrawBlankSegment()
-		element.DrawStringSegment(percentageLabel, 1, false)
-		element.DrawBarSegment(percentage)
-
-		drawImage(img, element.img, valuePosition)
-
-		element.debugDrawInOnOutLines(img, valuePosition)
-
+		element.AddBlankSegment()
+		element.AddTextSegment(percentageLabel, 1, false)
+		element.AddPercentageBarSegment(*percentage)
 	} else if hasPercentageValue {
-		element := NewImageElementWithStrings(valueBounds, 1, dpi, fontColor)
+		element = NewImageElementWithStrings(valueBounds, dpi, fontColor)
 
-		element.DrawStringSegment(percentageLabel, 0, true)
-
-		drawImage(img, element.img, valuePosition)
-
-		element.debugDrawInOnOutLines(img, valuePosition)
-
+		element.AddTextSegment(percentageLabel, 0, true)
 	} else if hasPercentageBar {
-		element := NewImageElement(valueBounds, 2)
+		element = NewImageElement(valueBounds)
 
-		element.DrawBlankSegment()
-		element.DrawBarSegment(percentage)
+		element.AddBlankSegment()
+		element.AddPercentageBarSegment(*percentage)
+	}
 
-		drawImage(img, element.img, valuePosition)
-
-		element.debugDrawInOnOutLines(img, valuePosition)
+	if element != nil {
+		element.DrawElement(img, valuePosition)
 	}
 
 	return img
@@ -331,7 +317,7 @@ func calculateIconSizeRatio(numberOfSegments uint) float64 {
 }
 
 func createButtonImageElement(bounds image.Rectangle, dpi uint, fontColor color.Color, numberOfSegments uint, label string, percentageLabel string, percentage *uint8) *ImageElement {
-	element := NewImageElementWithStrings(bounds, numberOfSegments, dpi, fontColor)
+	element := NewImageElementWithStrings(bounds, dpi, fontColor)
 
 	centerVertically := false
 	if numberOfSegments == 1 {
@@ -339,16 +325,15 @@ func createButtonImageElement(bounds image.Rectangle, dpi uint, fontColor color.
 	}
 
 	if label != "" {
-
-		element.DrawStringSegment(label, 0, centerVertically)
+		element.AddTextSegment(label, 0, centerVertically)
 	}
 
 	if percentageLabel != "" {
-		element.DrawStringSegment(percentageLabel, 0, centerVertically)
+		element.AddTextSegment(percentageLabel, 0, centerVertically)
 	}
 
 	if percentage != nil {
-		element.DrawBarSegment(percentage)
+		element.AddPercentageBarSegment(*percentage)
 	}
 
 	return element
