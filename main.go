@@ -108,8 +108,8 @@ func eventLoop(dev *streamdeck.Device, tch chan interface{}) error {
 				continue
 			}
 
-			if k.NotHoldable {
-				verbosef("Triggering not holdable action for key %d", k.Index)
+			if !k.Holdable {
+				verbosef("Triggering action for non holdable key %d", k.Index)
 				deck.triggerAction(dev, k.Index, false)
 				continue
 			}
