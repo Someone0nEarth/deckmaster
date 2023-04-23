@@ -10,10 +10,6 @@ import (
 	"github.com/golang/freetype/truetype"
 )
 
-// TODO move this to device
-const TOUCHSCREEN_VERTICAL_DPI = uint(181)   //14mm and 100 pixel
-const TOUCHSCREEN_HORIZONTAL_DPI = uint(188) //108mm and 800 pixel //TODO
-
 // BrightnessWidget is a widget for controlling the device brightness.
 type BrightnessWidget struct {
 	*ButtonWidget
@@ -102,7 +98,7 @@ func (w *BrightnessWidget) updateScreenSegment() error {
 		percentage = &percentageValue
 	}
 
-	dpi := TOUCHSCREEN_VERTICAL_DPI
+	dpi := w.dev.ScreenVerticalDPI
 	img := createSegmentImage(w.getMaxImageSize(), dpi, w.color, w.icon, w.label, percentageLabel, percentage)
 
 	return w.render(w.dev, img)
