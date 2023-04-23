@@ -149,7 +149,7 @@ func (w *BaseWidget) render(dev *streamdeck.Device, fg image.Image) error {
 	}
 
 	if w.screenSegmentIndex != nil {
-		return dev.SetTouchScreenImage(*w.screenSegmentIndex, img)
+		return dev.SetTouchScreenSegmentImage(*w.screenSegmentIndex, img)
 	} else {
 		return dev.SetImage(w.key, img)
 	}
