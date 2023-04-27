@@ -129,7 +129,6 @@ func NewWidget(dev *streamdeck.Device, base string, kc KeyConfig, bg image.Image
 
 	case "brightness":
 		return NewBrightnessWidget(bw, kc.Widget)
-
 	}
 
 	// unknown widget ID
@@ -180,6 +179,7 @@ func (w *BaseWidget) getMaxImageSize() image.Rectangle {
 			},
 		}
 	}
+
 	return image.Rectangle{
 		Min: image.Point{
 			X: 0,

@@ -5,9 +5,6 @@ import (
 	"image"
 	"image/color"
 	"math"
-
-	"github.com/golang/freetype"
-	"github.com/golang/freetype/truetype"
 )
 
 // BrightnessWidget is a widget for controlling the device brightness.
@@ -20,7 +17,6 @@ type BrightnessWidget struct {
 
 // NewBrightnessWidget returns a new BrightnessWidget.
 func NewBrightnessWidget(bw *BaseWidget, opts WidgetConfig) (*BrightnessWidget, error) {
-
 	showBar := true
 	if opts.Config["bar"] != nil {
 		_ = ConfigValue(opts.Config["bar"], &showBar)
@@ -102,11 +98,6 @@ func (w *BrightnessWidget) updateScreenSegment() error {
 	img := createSegmentImage(w.getMaxImageSize(), dpi, w.color, w.icon, w.label, percentageLabel, percentage)
 
 	return w.render(w.dev, img)
-}
-
-func (w *BrightnessWidget) calculateWidth(img *image.RGBA, font *truetype.Font, text string, fontsize float64) int {
-	extent, _ := ftContext(img, font, w.dev.DPI, fontsize).DrawString(text, freetype.Pt(0, 0))
-	return extent.X.Floor()
 }
 
 func (w *BrightnessWidget) refreshBrightnessValue() {

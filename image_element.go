@@ -2,12 +2,14 @@ package main
 
 import (
 	"fmt"
-	"github.com/golang/freetype"
-	"github.com/golang/freetype/truetype"
-	"golang.org/x/image/font"
+
 	"image"
 	"image/color"
 	"os"
+
+	"github.com/golang/freetype"
+	"github.com/golang/freetype/truetype"
+	"golang.org/x/image/font"
 )
 
 // ImageElement for drawing into vertical equal segments considering the ImageElement bounds and number of Segments.
@@ -37,7 +39,7 @@ func (segment iconSegment) draw(element *ImageElement) {
 		iconSize = element.segmentHeight
 	}
 
-	drawImageWithResizing(element.img, segment.img, int(iconSize), image.Pt(-1, -1))
+	_ = drawImageWithResizing(element.img, segment.img, int(iconSize), image.Pt(-1, -1))
 }
 
 type percentageBarSegment struct {
@@ -45,9 +47,9 @@ type percentageBarSegment struct {
 }
 
 func (segment percentageBarSegment) draw(element *ImageElement) {
-	bar := createBar(element.width(), element.segmentHeight, *&segment.percentage)
+	bar := createBar(element.width(), element.segmentHeight, segment.percentage)
 
-	drawImage(element.img, bar, image.Pt(0, int(element.segmentPositionY)))
+	_ = drawImage(element.img, bar, image.Pt(0, int(element.segmentPositionY)))
 }
 
 type textSegment struct {
@@ -81,7 +83,7 @@ func (segment textSegment) draw(element *ImageElement) {
 type blankSegment struct {
 }
 
-func (segment blankSegment) draw(element *ImageElement) {
+func (segment blankSegment) draw(_ *ImageElement) {
 	// Nothing to be done here
 }
 
@@ -134,11 +136,12 @@ func (element *ImageElement) AddPercentageBarSegment(percentage uint8) {
 	})
 }
 
-// AddBlankSegment is for layouting. It will add a blank segment into the current segment slot and set the pointer to the next segment
+// AddBlankSegment is for lay-outing. It will add a blank segment into the current segment slot and set the pointer to the next segment
 func (element *ImageElement) AddBlankSegment() {
 	element.segments = append(element.segments, blankSegment{})
 }
 
+// DrawElement
 func (element *ImageElement) DrawElement(targetImage *image.RGBA, position image.Point) {
 	element.calculateSegmentsInterspace()
 	element.calculateSegmentSize()
@@ -148,7 +151,7 @@ func (element *ImageElement) DrawElement(targetImage *image.RGBA, position image
 		element.incrementSegmentPositionY()
 	}
 
-	drawImage(targetImage, element.img, position)
+	_ = drawImage(targetImage, element.img, position)
 
 	element.debugDrawInOnOutLines(targetImage, position)
 }
@@ -165,15 +168,6 @@ func (element *ImageElement) incrementSegmentPositionY() {
 	element.segmentPositionY += element.segmentHeight + element.segmentsInterspace
 }
 
-func (element *ImageElement) calculateStringSegmentY(segmentPositionY uint) int {
-	if element.numberOfSegments() == 1 {
-		// y < 0 will center the string vertically (see widget.go drawString())
-		return -1
-	} else {
-		return int(segmentPositionY + element.segmentHeight)
-	}
-}
-
 func (element *ImageElement) calculateSegmentsInterspace() {
 	interspace := element.height() / (3 * element.numberOfSegments())
 	if interspace < 5 {
@@ -186,16 +180,9 @@ func (element *ImageElement) calculateSegmentSize() {
 	element.segmentHeight = (element.height() - ((element.numberOfSegments() - 1) * element.segmentsInterspace)) / element.numberOfSegments()
 }
 
-func (element *ImageElement) calculateWidth(img *image.RGBA, ttFont *truetype.Font, text string, fontsize float64) int {
-	extent, _ := ftContext(img, ttFont, element.dpi, fontsize).DrawString(text, freetype.Pt(0, 0))
-	return extent.X.Floor()
-}
-
 func (element *ImageElement) debugDrawInOnOutLines(targetImage *image.RGBA, elementPosition image.Point) {
-
 	//TODO Implementing a debug log routine
 	if true {
-
 		if false {
 			bounds := element.img.Bounds()
 			elementBounds := bounds.Bounds().Add(elementPosition)
@@ -208,7 +195,6 @@ func (element *ImageElement) debugDrawInOnOutLines(targetImage *image.RGBA, elem
 		if false {
 			segmentPosition := uint(0)
 			for segment := uint(0); segment < element.numberOfSegments(); segment++ {
-
 				segmentBounds := image.Rectangle{
 					Min: image.Point{
 						X: 0,
@@ -235,7 +221,6 @@ func (element *ImageElement) numberOfSegments() uint {
 }
 
 func maxFontSize(ttFont *truetype.Font, dpi uint, width, height int, text string) (float64, int, int, int) {
-
 	startingFontsize := float64(height) / (float64(dpi) / (72.0))
 	initialFontsize := startingFontsize * 1.4
 
@@ -296,7 +281,6 @@ func maxFontSize(ttFont *truetype.Font, dpi uint, width, height int, text string
 
 	//TODO Implementing a debug log routine
 	if false {
-
 		context := freetype.NewContext()
 		context.SetDPI(float64(dpi))
 		context.SetFontSize(fontsize)
@@ -331,14 +315,10 @@ func determineHeightFittingFontsize(dpi uint, ttFont *truetype.Font, startingFon
 	for {
 		actualHeight, ascent, descent = actualStringHeight(float64(dpi), ttFont, fontsize, text)
 
-		if actualHeight <= maxHeight {
-			break
-		} else {
+		if actualHeight > maxHeight && fontsize > 0.25 {
 			fontsize -= 0.25
-		}
-
-		if fontsize <= 0 {
-			//TODO err
+		} else {
+			break
 		}
 	}
 	//TODO ascent & descent arent used yet
@@ -352,14 +332,10 @@ func determineWidthFittingFontsize(dpi uint, ttFont *truetype.Font, startingFont
 	for {
 		actualWidth = actualStringWidth(float64(dpi), ttFont, fontsize, text)
 
-		if actualWidth <= maxWidth {
-			break
-		} else {
+		if actualWidth > maxWidth && fontsize > 0.25 {
 			fontsize -= 0.25
-		}
-
-		if fontsize <= 0 {
-			//TODO err
+		} else {
+			break
 		}
 	}
 	return actualWidth, fontsize
@@ -523,10 +499,10 @@ func debugDrawInline(img *image.RGBA, rectangle image.Rectangle) {
 	}
 
 	innerLine := rectangle.Bounds()
-	innerLine.Min.X += 1
-	innerLine.Min.Y += 1
-	innerLine.Max.X -= 1
-	innerLine.Max.Y -= 1
+	innerLine.Min.X++
+	innerLine.Min.Y++
+	innerLine.Max.X--
+	innerLine.Max.Y--
 
 	drawRectangle(img, rgbaGreenBlue, innerLine)
 }
@@ -540,10 +516,10 @@ func debugDrawOutline(img *image.RGBA, rectangle image.Rectangle) {
 	}
 
 	outLine := rectangle.Bounds()
-	outLine.Min.X -= 1
-	outLine.Min.Y -= 1
-	outLine.Max.X += 1
-	outLine.Max.Y += 1
+	outLine.Min.X--
+	outLine.Min.Y--
+	outLine.Max.X++
+	outLine.Max.Y++
 
 	drawRectangle(img, colour, outLine)
 }
@@ -560,7 +536,6 @@ func debugDrawOnLine(img *image.RGBA, rectangle image.Rectangle) {
 }
 
 func drawRectangle(img *image.RGBA, colour color.Color, rectangle image.Rectangle) {
-
 	for x := rectangle.Min.X; x < rectangle.Max.X; x++ {
 		img.Set(x, rectangle.Min.Y, colour)
 		img.Set(x, rectangle.Max.Y-1, colour)
