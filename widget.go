@@ -150,9 +150,8 @@ func (w *BaseWidget) render(dev *streamdeck.Device, fg image.Image) error {
 
 	if w.screenSegmentIndex != nil {
 		return dev.SetTouchScreenSegmentImage(*w.screenSegmentIndex, img)
-	} else {
-		return dev.SetImage(w.key, img)
 	}
+	return dev.SetImage(w.key, img)
 }
 
 // change the interval a widget gets rendered in.
@@ -176,17 +175,16 @@ func (w *BaseWidget) getMaxImageSize() image.Rectangle {
 				Y: int(w.dev.ScreenSegmentHeight()),
 			},
 		}
-	} else {
-		return image.Rectangle{
-			Min: image.Point{
-				X: 0,
-				Y: 0,
-			},
-			Max: image.Point{
-				X: int(w.dev.Pixels),
-				Y: int(w.dev.Pixels),
-			},
-		}
+	}
+	return image.Rectangle{
+		Min: image.Point{
+			X: 0,
+			Y: 0,
+		},
+		Max: image.Point{
+			X: int(w.dev.Pixels),
+			Y: int(w.dev.Pixels),
+		},
 	}
 }
 
