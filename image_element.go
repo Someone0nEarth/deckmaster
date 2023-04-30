@@ -315,8 +315,9 @@ func determineHeightFittingFontsize(dpi uint, ttFont *truetype.Font, startingFon
 	for {
 		actualHeight, ascent, descent = actualStringHeight(float64(dpi), ttFont, fontsize, text)
 
-		if actualHeight > maxHeight && fontsize > 0.25 {
-			fontsize -= 0.25
+		sizeDecrease := 0.7
+		if actualHeight > maxHeight && fontsize > sizeDecrease {
+			fontsize -= sizeDecrease
 		} else {
 			break
 		}
@@ -332,8 +333,9 @@ func determineWidthFittingFontsize(dpi uint, ttFont *truetype.Font, startingFont
 	for {
 		actualWidth = actualStringWidth(float64(dpi), ttFont, fontsize, text)
 
-		if actualWidth > maxWidth && fontsize > 0.25 {
-			fontsize -= 0.25
+		sizeDecrease := 0.7
+		if actualWidth > maxWidth && fontsize > sizeDecrease {
+			fontsize -= sizeDecrease
 		} else {
 			break
 		}
