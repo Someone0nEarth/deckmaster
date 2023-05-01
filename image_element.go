@@ -440,12 +440,12 @@ func drawString2(img *image.RGBA, bounds image.Rectangle, ttf *truetype.Font, te
 	if centerHorizontally {
 		actualWidth := actualStringWidth(float64(dpi), ttf, fontsize, text)
 		xCenter := float64(bounds.Dx())/2.0 - (float64(actualWidth) / 2.0)
-		pt = image.Pt(bounds.Min.X+int(xCenter), pt.Y)
+		pt = image.Pt(pt.X+int(xCenter), pt.Y)
 	}
 	if centerVertically {
 		actualHeight, _, _ := actualStringHeight(float64(dpi), ttf, fontsize, text)
 		yCenter := float64(bounds.Dy()/2.0) + (float64(actualHeight) / 2.0)
-		pt = image.Pt(pt.X, bounds.Min.Y+int(yCenter))
+		pt = image.Pt(pt.X, (pt.Y-bounds.Dy())+int(yCenter))
 	}
 
 	c.SetSrc(image.NewUniform(color))
