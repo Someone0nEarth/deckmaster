@@ -18,6 +18,11 @@ type WidgetElement struct {
 	segments           []elementSegment
 }
 
+// NewWidgetElement new WidgetElement
+func NewWidgetElement(dpi uint) *WidgetElement {
+	return &WidgetElement{dpi: dpi}
+}
+
 // drawElement draws the element into the target image within the bound at the position.
 func (e *WidgetElement) drawElement(targetImage *image.RGBA, position image.Point, bounds image.Rectangle) {
 	e.segmentPositionY = 0

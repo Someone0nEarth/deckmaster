@@ -63,9 +63,7 @@ func (w *BrightnessWidget) Update() error {
 }
 
 func (w *BrightnessWidget) updateButton() image.Image {
-	buttonLayout := ButtonLayout{
-		dpi: w.dev.DPI,
-	}
+	buttonLayout := NewButtonLayout(w.dev.DPI)
 
 	if w.icon != nil {
 		buttonLayout.SetIcon(w.icon)
@@ -88,9 +86,7 @@ func (w *BrightnessWidget) updateButton() image.Image {
 }
 
 func (w *BrightnessWidget) updateScreenSegment() image.Image {
-	segmentLayout := ScreenSegmentLayout{
-		dpi: w.dev.ScreenVerticalDPI,
-	}
+	segmentLayout := NewScreenSegmentLayout(w.dev.ScreenVerticalDPI)
 
 	if w.icon != nil {
 		segmentLayout.SetIcon(w.icon)

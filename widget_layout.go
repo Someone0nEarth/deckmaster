@@ -31,16 +31,21 @@ type ButtonLayout struct {
 	dpi         uint
 }
 
+// NewButtonLayout new ButtonLayout
+func NewButtonLayout(dpi uint) *ButtonLayout {
+	return &ButtonLayout{dpi: dpi}
+}
+
 // SetIcon Sets the icon in the icon element.
 func (l *ButtonLayout) SetIcon(icon image.Image) {
-	l.iconElement = &WidgetElement{}
+	l.iconElement = NewWidgetElement(l.dpi)
 	l.iconElement.addIconSegment(icon)
 }
 
 // AddPercentageBar Add a percentage bar with the given value to the info element.
 func (l *ButtonLayout) AddPercentageBar(percentage uint8) {
 	if l.infoElement == nil {
-		l.infoElement = &WidgetElement{}
+		l.infoElement = NewWidgetElement(l.dpi)
 	}
 	l.infoElement.addPercentageBarSegment(percentage)
 }
@@ -48,7 +53,7 @@ func (l *ButtonLayout) AddPercentageBar(percentage uint8) {
 // AddText Add the text to the info element.
 func (l *ButtonLayout) AddText(text string, font *truetype.Font, fontColor color.Color, alignmentX int, centerVertically bool) {
 	if l.infoElement == nil {
-		l.infoElement = &WidgetElement{dpi: l.dpi}
+		l.infoElement = NewWidgetElement(l.dpi)
 	}
 	l.infoElement.addTextSegment(text, font, fontColor, alignmentX, centerVertically)
 }
@@ -125,16 +130,21 @@ type ScreenSegmentLayout struct {
 	dpi          uint
 }
 
+// NewScreenSegmentLayout new ScreenSegmentLayout
+func NewScreenSegmentLayout(dpi uint) *ScreenSegmentLayout {
+	return &ScreenSegmentLayout{dpi: dpi}
+}
+
 // SetIcon Sets the icon in the icon element.
 func (l *ScreenSegmentLayout) SetIcon(icon image.Image) {
-	l.iconElement = &WidgetElement{}
+	l.iconElement = NewWidgetElement(l.dpi)
 	l.iconElement.addIconSegment(icon)
 }
 
 // AddPercentageBar Add a percentage bar with the given value to the info element.
 func (l *ScreenSegmentLayout) AddPercentageBar(percentage uint8) {
 	if l.infoElement == nil {
-		l.infoElement = &WidgetElement{}
+		l.infoElement = NewWidgetElement(l.dpi)
 	}
 	l.infoElement.addPercentageBarSegment(percentage)
 }
@@ -142,21 +152,21 @@ func (l *ScreenSegmentLayout) AddPercentageBar(percentage uint8) {
 // AddText Add the text to the info element.
 func (l *ScreenSegmentLayout) AddText(text string, font *truetype.Font, fontColor color.Color, alignmentX int, centerVertically bool) {
 	if l.infoElement == nil {
-		l.infoElement = &WidgetElement{dpi: l.dpi}
+		l.infoElement = NewWidgetElement(l.dpi)
 	}
 	l.infoElement.addTextSegment(text, font, fontColor, alignmentX, centerVertically)
 }
 
 // SetLabel sets the label in the label element.
 func (l *ScreenSegmentLayout) SetLabel(text string, font *truetype.Font, fontColor color.Color, alignmentX int, centerVertically bool) {
-	l.labelElement = &WidgetElement{dpi: l.dpi}
+	l.labelElement = NewWidgetElement(l.dpi)
 	l.labelElement.addTextSegment(text, font, fontColor, alignmentX, centerVertically)
 }
 
 // AddBlank adds a blank segment to the info element.
 func (l *ScreenSegmentLayout) AddBlank() {
 	if l.infoElement == nil {
-		l.infoElement = &WidgetElement{dpi: l.dpi}
+		l.infoElement = NewWidgetElement(l.dpi)
 	}
 
 	l.infoElement.addBlankSegment()
